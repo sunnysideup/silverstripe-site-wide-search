@@ -42,6 +42,15 @@ class SearchApi {
         'ClassName',
     ];
 
+    protected $isQuickSearch = false;
+
+    public function setIsQuickSearch(bool $b) : SearchApi
+    {
+        $this->isQuickSearch = $b;
+
+        return $this;
+    }
+
     protected $baseClass = DataObject::class;
 
     public function setBaseClase(string $class) : SearchApi
@@ -184,15 +193,51 @@ class SearchApi {
 
     protected function getAllValidFields($singleton) : array
     {
-        $fields = Config::inst()->get(get_class($singleton), 'db');
         $array= [];
-        foreach($fields as $name => $type)
-        {
-            $dbField = $singleton->dbObject($name);
-            if($dbField instanceof DBString) {
-                $array[$name] = $name;
+        $fields = Config::inst()->get(get_class($singleton), 'db');
+        if(is_array($fields)) {
+            if($this->isQuickSearch) {
+                $fields = $this->getIndexedField($singleton, $availableFields);
+            }
+            foreach(array_keys($fields) as $name)
+            {
+                $dbField = $singleton->dbObject($name);
+                if($dbField instanceof DBString) {
+                    $array[$name] = $name;
+                }
             }
         }
+
+        return $array;
+    }
+
+    protected function getIndexedField($singleton, array $availableFields) : array
+    {
+        $array = [];
+        $indexes = Config::inst()->get(get_class($singleton), 'indexes');
+        foreach($indexes as $key => $field) {
+            if(isset($availableFields[$key])) {
+                $array[$key] = $key;
+            } elseif(is_array($field)) {
+                foreach($field as $test) {
+                    if(is_array($test)) {
+                        if(isset($test['columns'])) {
+                            $test = $test['columns'];
+                        } else {
+                            continue;
+                        }
+                    }
+                    $testArray = explode(',', $test);
+                    foreach($testArray as $testInner) {
+                        $testInner = trim($testInner);
+                        if(isset($availableFields[$testInner])) {
+                            $array[$testInner] = $testInner;
+                        }
+                    }
+                }
+            }
+        }
+
         return $array;
     }
 
