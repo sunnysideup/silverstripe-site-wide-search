@@ -14,6 +14,7 @@ $myLinks = Injector::inst()->get(SearchApi::class)
     ->setBaseClass(DataObject::class)
     ->setExcludedClasses([MyMemberDetails::class])
     ->setExcludedFields(['SecretStuff'])
+    ->setIsQuickSearch(false)
     ->setWords(['MyNiceWord', 'OtherWord'])
     ->getLinks();
 
