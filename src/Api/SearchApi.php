@@ -98,13 +98,16 @@ class SearchApi {
             if (count($ids)) {
                 $items = $className::get()->filter(['ID' => $ids])->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
-                    $link = $finder->getLink($item,$this->excludedClasses);
+                    $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
+                    $link = $finder->getLink($item, $this->excludedClasses);
                     if ($item->canView()) {
                         $list->push(
                             ArrayData::create(
                                 [
                                     'HasLink' => $link ? true : false,
+                                    'HasCMSEditLink' => $cmsEditLink ? true : false,
                                     'Link' => $link,
+                                    'CMSEditLink' => $cmsEditLink,
                                     'Object' => $item,
                                 ]
                             )

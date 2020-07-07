@@ -38,9 +38,12 @@ class FindEditableObjects {
 
     private static $max_search_per_class_name = 100;
 
-    private static $valid_methods = [
+    private static $valid_methods_edit = [
         'CMSEditLink',
         'getCMSEditLink',
+    ];
+    
+    private static $valid_methods_view = [
         'getLink',
         'Link',
     ];
@@ -52,7 +55,21 @@ class FindEditableObjects {
 
 
     /**
-     * returns an link to an object that can be edited in the CMS or viewed
+     * returns an link to an object that can be edited in the CMS
+     * @param  mixed dataObject
+     * @return string
+     */
+    public function getCMSEditLink($dataObject, array $excludedClasses) : string
+    {
+        $this->excludedClasses = $excludedClasses;
+        $this->originatingClassName = $dataObject->ClassName;
+        $this->originatingClassNameCount = 0;
+
+        return $this->checkForValidMethods($dataObject, 'valid_methods_edit');
+
+    }
+    /**
+     * returns an link to an object that can be viewed
      * @param  mixed dataObject
      * @return string
      */
@@ -62,28 +79,32 @@ class FindEditableObjects {
         $this->originatingClassName = $dataObject->ClassName;
         $this->originatingClassNameCount = 0;
 
-        return $this->checkForValidMethods($dataObject);
+        return $this->checkForValidMethods($dataObject, 'valid_methods_view');
 
     }
 
-    protected function checkForValidMethods($dataObject) : string
+    protected function checkForValidMethods($dataObject, string $type = 'valid_methods') : string
     {
+        $validMethods = $this->Config()->get($type);
+
         if($this->originatingClassNameCount > $this->Config()->get('max_search_per_class_name')) {
             return '';
         }
+        if(! isset($this->cache[$type])) {
+            $this->cache[$type] = [];
+        }
         $this->originatingClassNameCount++;
-        $validMethods = $this->Config()->get('valid_methods');
 
         // quick return
-        if(isset($this->cache[$dataObject->ClassName]) && $this->cache[$dataObject->ClassName] !== true) {
-            $method = $this->cache[$dataObject->ClassName];
+        if(isset($this->cache[$type][$dataObject->ClassName]) && $this->cache[$type][$dataObject->ClassName] !== true) {
+            $method = $this->cache[$type][$dataObject->ClassName];
             return $dataObject->$method();
         }
         if(! in_array($dataObject->ClassName, $this->excludedClasses)) {
-            if(empty($this->cache[$dataObject->ClassName]) || $this->cache[$dataObject->ClassName] !== true) {
+            if(empty($this->cache[$type][$dataObject->ClassName]) || $this->cache[$type][$dataObject->ClassName] !== true) {
                 foreach ($validMethods as $validMethod) {
                     if ($dataObject->hasMethod($validMethod)) {
-                        $this->cache[$dataObject->ClassName] = $validMethod;
+                        $this->cache[$type][$dataObject->ClassName] = $validMethod;
 
                         return $dataObject->$validMethod();
                     }
@@ -98,16 +119,16 @@ class FindEditableObjects {
         }
 
         // there is no match for this one, but we can search relations ...
-        $this->cache[$dataObject->ClassName] = true;
+        $this->cache[$type][$dataObject->ClassName] = true;
         foreach ($this->getRelations($dataObject) as $relationName)
         {
             $rels = $dataObject->$relationName();
             if($rels) {
                 if($rels instanceof DataObject) {
-                    return $this->checkForValidMethods($rels);
+                    return $this->checkForValidMethods($rels, $type);
                 } else if ($rels instanceof DataList) {
                     foreach($rels as $rel) {
-                        return $this->checkForValidMethods($rel);
+                        return $this->checkForValidMethods($rel, $type);
                     }
                 } elseif( $rels instanceof UnsavedRelationList) {
                     //do nothing;
