@@ -50,7 +50,7 @@ class SearchAdmin extends LeftAndMain
         );
         $form->Fields()->push(
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
-                ->setDescription('Only search main fields?')
+                ->setDescription('This is faster but only searches a limited number of fields')
         );
         if (! $this->listHTML) {
             $this->listHTML = '(none)';
