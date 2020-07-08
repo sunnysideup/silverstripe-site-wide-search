@@ -74,11 +74,7 @@ class FindEditableObjects
      */
     public function getCMSEditLink($dataObject, array $excludedClasses): string
     {
-        $this->excludedClasses = $excludedClasses;
-        $this->originatingClassName = $dataObject->ClassName;
-        $this->originatingClassNameCount = 0;
-
-        return $this->checkForValidMethods($dataObject, 'valid_methods_edit');
+        return $this->getLinkInner($dataObject, $excludedClasses, 'valid_methods_edit');
     }
 
     /**
@@ -88,14 +84,30 @@ class FindEditableObjects
      */
     public function getLink($dataObject, array $excludedClasses): string
     {
-        $this->excludedClasses = $excludedClasses;
-        $this->originatingClassName = $dataObject->ClassName;
-        $this->originatingClassNameCount = 0;
-
-        return $this->checkForValidMethods($dataObject, 'valid_methods_view');
+        return $this->getLinkInner($dataObject, $excludedClasses, 'valid_methods_view');
     }
 
-    protected function checkForValidMethods($dataObject, string $type = 'valid_methods'): string
+    /**
+     * returns an link to an object that can be viewed
+     * @param  mixed $dataObject
+     * @return string
+     */
+    public function getLinkInner($dataObject, array $excludedClasses, string $type): string
+    {
+        $typeKey = $type . '_links';
+        $objectKey = $dataObject->ClassName . '_' . $dataObject->ID;
+        $result = $this->cache[$typeKey][$objectKey] ?? false;
+        if ($result === false) {
+            $this->excludedClasses = $excludedClasses;
+            $this->originatingClassName = $dataObject->ClassName;
+            $this->originatingClassNameCount = 0;
+            $result = $this->checkForValidMethods($dataObject, $type);
+            $this->cache[$typeKey][$objectKey] = $result;
+        }
+        return $result;
+    }
+
+    protected function checkForValidMethods($dataObject, string $type): string
     {
         $validMethods = $this->Config()->get($type);
 

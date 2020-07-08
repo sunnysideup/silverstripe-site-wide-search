@@ -132,9 +132,12 @@ class SearchApi
                 $className = (string) $className;
                 $items = $className::get()->filter(['ID' => $ids])->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
-                    $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
-                    $link = $finder->getLink($item, $this->excludedClasses);
                     if ($item->canView()) {
+                        $link = $finder->getLink($item, $this->excludedClasses);
+                        $cmsEditLink = '';
+                        if ($item->canEdit()) {
+                            $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
+                        }
                         $list->push(
                             ArrayData::create(
                                 [
