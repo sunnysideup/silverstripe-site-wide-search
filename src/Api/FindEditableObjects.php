@@ -91,18 +91,24 @@ class FindEditableObjects
 
         // quick return
         if (isset($this->cache[$type][$dataObject->ClassName]) && $this->cache[$type][$dataObject->ClassName] !== true) {
-            $method = $this->cache[$type][$dataObject->ClassName];
-            return (string) $dataObject->{$method}();
+            $validMethod = $this->cache[$type][$dataObject->ClassName];
+            if ($dataObject->hasMethod($validMethod)) {
+                return (string) $dataObject->{$validMethod}();
+            }
+            return (string) $dataObject->{$validMethod};
         }
         if (! in_array($dataObject->ClassName, $this->excludedClasses, true)) {
             if (empty($this->cache[$type][$dataObject->ClassName]) || $this->cache[$type][$dataObject->ClassName] !== true) {
                 foreach ($validMethods as $validMethod) {
+                    $outcome = null;
                     if ($dataObject->hasMethod($validMethod)) {
                         $outcome = $dataObject->{$validMethod}();
-                        if ($outcome) {
-                            $this->cache[$type][$dataObject->ClassName] = $validMethod;
-                            return $outcome;
-                        }
+                    } elseif (! empty($dataObject->{$validMethod})) {
+                        $outcome = $dataObject->{$validMethod};
+                    }
+                    if ($outcome) {
+                        $this->cache[$type][$dataObject->ClassName] = $validMethod;
+                        return (string) $outcome;
                     }
                 }
             }
