@@ -6,6 +6,7 @@ use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
+use SilverStripe\Core\Flushable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataList;
@@ -13,19 +14,53 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\UnsavedRelationList;
 use Sunnysideup\CmsEditLinkField\Api\CMSEditLinkAPI;
 
-class FindEditableObjects
+class FindEditableObjects implements Flushable
 {
     use Extensible;
     use Configurable;
     use Injectable;
 
+    private const CACHE_NAME = 'FindEditableObjectsCache';
+
     /**
      * format is as follows:
-     *     [
-     *         ClassNameA => true, // tested and does not have any available methods
-     *         ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
-     *         ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
-     *         ClassNameD => true, // tested and does not have any available methods
+     *      [
+     *          'valid_methods_edit' => [
+     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
+     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
+     *              ClassNameD => true, // tested and does not have any available methods
+     *          ],
+     *          'valid_methods_view' => [
+     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
+     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
+     *              ClassNameD => true, // tested and does not have any available methods
+     *          ],
+     *          'valid_methods_view_links' => [
+     *              [ClassNameX_IDY] => 'MyLinkView',
+     *              [ClassNameX_IDZ] => 'MyLinkView',
+     *          ],
+     *          'valid_methods_edit_links' => [
+     *              [ClassNameX_IDY] => 'MyLinkEdit',
+     *              [ClassNameX_IDZ] => 'MyLinkEdit',
+     *          ],
+     *          'rels' =>
+     *              'ClassNameY' => [
+     *                  'MethodA' => RelationClassNameB,
+     *                  'MethodC' => RelationClassNameD,
+     *              ],
+     *          ],
+     *          'validMethod' => [
+     *              'valid_methods_edit' => [
+     *                  'A',
+     *                  'B',
+     *              ]
+     *              'valid_methods_view' => [
+     *                  'A',
+     *                  'B',
+     *              ]
+     *          ]
      *     ]
      * we use true rather than false to be able to use empty to work out if it has been tested before
      *
@@ -35,11 +70,11 @@ class FindEditableObjects
 
     protected $originatingClassName = '';
 
-    protected $originatingClassNameCount = 0;
+    protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
 
-    private static $max_search_per_class_name = 7;
+    private static $max_relation_depth = 3;
 
     private static $valid_methods_edit = [
         'CMSEditLink',
@@ -51,11 +86,24 @@ class FindEditableObjects
         'Link',
     ];
 
+    /**
+     * Flush all MemberCacheFlusher services
+     */
+    public static function flush()
+    {
+        Injector::inst()->get(FindEditableObjects::class)->getFileCache()->clear();
+    }
+
+    public function getFileCache()
+    {
+        return Injector::inst()->get(CacheInterface::class . '.siteWideSearch');
+    }
+
     public function initCache()
     {
         $fileCache = $this->getFileCache();
-        if ($fileCache->has('FindEditableObjectsCache')) {
-            $this->cache = unserialize($fileCache->get('FindEditableObjectsCache'));
+        if ($fileCache->has(self::CACHE_NAME)) {
+            $this->cache = unserialize($fileCache->get(self::CACHE_NAME));
         }
     }
 
@@ -63,7 +111,7 @@ class FindEditableObjects
     {
         if (count($this->cache)) {
             $fileCache = $this->getFileCache();
-            $fileCache->set('FindEditableObjectsCache', serialize($this->cache));
+            $fileCache->set(self::CACHE_NAME, serialize($this->cache));
         }
     }
 
@@ -100,24 +148,27 @@ class FindEditableObjects
         if ($result === false) {
             $this->excludedClasses = $excludedClasses;
             $this->originatingClassName = $dataObject->ClassName;
-            $this->originatingClassNameCount = 0;
+            $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
             $this->cache[$typeKey][$objectKey] = $result;
         }
         return $result;
     }
 
-    protected function checkForValidMethods($dataObject, string $type): string
+    protected function checkForValidMethods($dataObject, string $type, int $relationDepth = 0): string
     {
-        $validMethods = $this->Config()->get($type);
 
-        if ($this->originatingClassNameCount > $this->Config()->get('max_search_per_class_name')) {
+        //too many iterations!
+        if ($relationDepth > $this->Config()->get('max_relation_depth')) {
             return '';
         }
+
+        $validMethods = $this->getValidMethods($type);
+
         if (! isset($this->cache[$type])) {
             $this->cache[$type] = [];
         }
-        $this->originatingClassNameCount++;
+        $this->relationTypesCovered[$dataObject->ClassName] = true;
 
         // quick return
         if (isset($this->cache[$type][$dataObject->ClassName]) && $this->cache[$type][$dataObject->ClassName] !== true) {
@@ -154,22 +205,31 @@ class FindEditableObjects
 
         // there is no match for this one, but we can search relations ...
         $this->cache[$type][$dataObject->ClassName] = true;
-        foreach ($this->getRelations($dataObject) as $relationName) {
-            $rels = $dataObject->{$relationName}();
-            if ($rels) {
-                if ($rels instanceof DataObject) {
-                    return $this->checkForValidMethods($rels, $type);
-                } elseif ($rels instanceof DataList) {
-                    foreach ($rels as $rel) {
-                        return $this->checkForValidMethods($rel, $type);
+        $relationDepth++;
+        foreach ($this->getRelations($dataObject) as $relationName => $relType) {
+            $outcome = null;
+            //no support for link through relations yet!
+            if (is_array($relType)) {
+                continue;
+            }
+            if (! isset($this->relationTypesCovered[$relType])) {
+                $rels = $dataObject->{$relationName}();
+                if ($rels) {
+                    if ($rels instanceof DataList) {
+                        $rels = $rels->first();
+                    } elseif ($rels && $rels instanceof DataObject) {
+                        $outcome = $this->checkForValidMethods($rels, $type, $relationDepth);
+                    } elseif ($rels instanceof UnsavedRelationList) {
+                        //do nothing;
+                    } else {
+                        print_r($rels);
+                        user_error('Unexpected Relationship');
+                        die('');
                     }
-                } elseif ($rels instanceof UnsavedRelationList) {
-                    //do nothing;
-                } else {
-                    print_r($rels);
-                    user_error('Unexpected Relationship');
-                    die('');
                 }
+            }
+            if ($outcome) {
+                return $outcome;
             }
         }
 
@@ -178,17 +238,31 @@ class FindEditableObjects
 
     protected function getRelations($dataObject): array
     {
-        return array_merge(
-            array_keys(Config::inst()->get($dataObject->ClassName, 'belongs_to')),
-            array_keys(Config::inst()->get($dataObject->ClassName, 'has_one')),
-            array_keys(Config::inst()->get($dataObject->ClassName, 'has_many')),
-            array_keys(Config::inst()->get($dataObject->ClassName, 'belongs_many_many')),
-            array_keys(Config::inst()->get($dataObject->ClassName, 'many_many')),
-        );
+        if (! isset($this->cache['rels'][$dataObject->ClassName])) {
+            if (! isset($this->cache['rels'])) {
+                $this->cache['rels'] = [];
+            }
+            $this->cache['rels'][$dataObject->ClassName] = array_merge(
+                Config::inst()->get($dataObject->ClassName, 'belongs_to'),
+                Config::inst()->get($dataObject->ClassName, 'has_one'),
+                Config::inst()->get($dataObject->ClassName, 'has_many'),
+                Config::inst()->get($dataObject->ClassName, 'belongs_many_many'),
+                Config::inst()->get($dataObject->ClassName, 'many_many'),
+            );
+        }
+
+        return $this->cache['rels'][$dataObject->ClassName];
     }
 
-    protected function getFileCache()
+    protected function getValidMethods(string $type): array
     {
-        return Injector::inst()->get(CacheInterface::class . '.siteWideSearch');
+        if (! isset($this->cache['validMethods'][$type])) {
+            if (! isset($this->cache['validMethods'])) {
+                $this->cache['validMethods'] = [];
+            }
+            $this->cache['validMethods'][$type] = $this->Config()->get($type);
+        }
+
+        return $this->cache['validMethods'][$type];
     }
 }
