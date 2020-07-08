@@ -3,15 +3,15 @@
 namespace Sunnysideup\SiteWideSearch\Admin;
 
 use SilverStripe\Admin\LeftAndMain;
-use SilverStripe\Core\Environment;
+use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FormAction;
-use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\ReadonlyField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
-use SilverStripe\Control\HTTPResponse;
+use SilverStripe\ORM\FieldType\DBField;
 
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
@@ -29,7 +29,7 @@ class SearchAdmin extends LeftAndMain
 
     private static $menu_title = 'Search';
 
-    // private static $menu_icon = 'silverstripe/cms:images/search.svg';
+    private static $menu_icon_class = 'font-icon-p-search';
 
     private static $menu_priority = 99999;
 
@@ -51,9 +51,11 @@ class SearchAdmin extends LeftAndMain
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
                 ->setDescription('Only search main fields?')
         );
+        if (! $this->listHTML) {
+            $this->listHTML = '(none)';
+        }
         $form->Fields()->push(
-            (new LiteralField('List', $this->listHTML))
-                ->setDescription('Only search main fields?')
+            (new ReadonlyField('List', 'Search Results', DBField::create_field('HTMLText', $this->listHTML)))
         );
         $form->Actions()->push(
             FormAction::create('save', 'Find')
@@ -67,7 +69,6 @@ class SearchAdmin extends LeftAndMain
 
     public function save($data, $form)
     {
-        Environment::setTimeLimitMax(120);
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
             return $this->redirectBack();

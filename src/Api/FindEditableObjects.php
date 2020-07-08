@@ -2,10 +2,12 @@
 
 namespace Sunnysideup\SiteWideSearch\Api;
 
+use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\UnsavedRelationList;
@@ -37,7 +39,7 @@ class FindEditableObjects
 
     protected $excludedClasses = [];
 
-    private static $max_search_per_class_name = 5;
+    private static $max_search_per_class_name = 7;
 
     private static $valid_methods_edit = [
         'CMSEditLink',
@@ -48,6 +50,22 @@ class FindEditableObjects
         'getLink',
         'Link',
     ];
+
+    public function initCache()
+    {
+        $fileCache = $this->getFileCache();
+        if ($fileCache->has('FindEditableObjectsCache')) {
+            $this->cache = unserialize($fileCache->get('FindEditableObjectsCache'));
+        }
+    }
+
+    public function saveCache()
+    {
+        if (count($this->cache)) {
+            $fileCache = $this->getFileCache();
+            $fileCache->set('FindEditableObjectsCache', serialize($this->cache));
+        }
+    }
 
     /**
      * returns an link to an object that can be edited in the CMS
@@ -155,5 +173,10 @@ class FindEditableObjects
             array_keys(Config::inst()->get($dataObject->ClassName, 'belongs_many_many')),
             array_keys(Config::inst()->get($dataObject->ClassName, 'many_many')),
         );
+    }
+
+    protected function getFileCache()
+    {
+        return Injector::inst()->get(CacheInterface::class . '.siteWideSearch');
     }
 }

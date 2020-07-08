@@ -1,13 +1,16 @@
 <% if $SearchResults %>
 <style>
+    .search-results-for-site-wide-search li,
     .search-results-for-site-wide-search li {
-        list-style: none;
+        list-style: none!important;
+        margin-left: 0!important;
+        padding-left: 0!important;
+        overflow: hidden!important;
     }
     .search-results-for-site-wide-search .disabled {
         color: #575757!important;
     }
     .search-results-for-site-wide-search a {
-        font-weight: strong;
         display: inline-block;
     }
     .search-results-for-site-wide-search a.edit {

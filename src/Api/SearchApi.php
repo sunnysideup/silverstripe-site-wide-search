@@ -5,6 +5,7 @@ namespace Sunnysideup\SiteWideSearch\Api;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
+use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
@@ -12,8 +13,8 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBString;
-use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\Group;
+use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\View\ArrayData;
@@ -100,17 +101,34 @@ class SearchApi
 
     public function getLinks(string $word = ''): ArrayList
     {
+        Environment::increaseTimeLimitTo();
+        Environment::setMemoryLimitMax(-1);
+        Environment::increaseMemoryLimitTo(-1);
+        if ($this->debug) {
+            $start = microtime(true);
+        }
         //always do first ...
         $matches = $this->getMatches($word);
+        if ($this->debug) {
+            $elaps = microtime(true) - $start;
+            DB::alteration_message('seconds taken find results: ' . $elaps);
+        }
 
         // helper
         $finder = Injector::inst()->get(FindEditableObjects::class);
+        $finder->initCache();
 
         //return values
         $list = ArrayList::create();
-
+        if ($this->debug) {
+            DB::alteration_message('number of matched classes: ' . count($matches));
+        }
         foreach ($matches as $className => $ids) {
             if (count($ids)) {
+                if ($this->debug) {
+                    $start = microtime(true);
+                    DB::alteration_message('matches for : ' . $className . ': ' . count($ids));
+                }
                 $className = (string) $className;
                 $items = $className::get()->filter(['ID' => $ids])->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
@@ -130,8 +148,13 @@ class SearchApi
                         );
                     }
                 }
+                if ($this->debug) {
+                    $elaps = microtime(true) - $start;
+                    DB::alteration_message('seconds taken to find objects in: ' . $className . ': ' . $elaps);
+                }
             }
         }
+        $finder->saveCache();
 
         return $list;
     }
@@ -168,7 +191,17 @@ class SearchApi
                     if ($this->debug) {
                         DB::alteration_message(' .. Filter: ' . implode(', ', array_keys($filterAny)));
                     }
-                    $array[$className] = $className::get()->filterAny($filterAny)->column('ID');
+                    if ($this->debug) {
+                        $start = microtime(true);
+                    }
+                    $array[$className] = $className::get()
+                        ->filterAny($filterAny)
+                        ->limit($this->Config()->get('limit_of_count_per_data_object'))
+                        ->column('ID');
+                    if ($this->debug) {
+                        $elaps = microtime(true) - $start;
+                        DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
+                    }
                 }
             }
         }
