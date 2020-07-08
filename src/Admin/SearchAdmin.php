@@ -3,27 +3,19 @@
 namespace Sunnysideup\SiteWideSearch\Admin;
 
 use SilverStripe\Admin\LeftAndMain;
-use SilverStripe\ORM\ArrayList;
-use SilverStripe\ORM\DataObject;
-use SilverStripe\Forms\TextField;
-use SilverStripe\Forms\FormAction;
-use SilverStripe\Forms\LiteralField;
-use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Injector\Injector;
+use SilverStripe\Forms\CheckboxField;
+use SilverStripe\Forms\FormAction;
+use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\TextField;
+use SilverStripe\ORM\ArrayList;
+use SilverStripe\ORM\DataObject;
 
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SearchAdmin extends LeftAndMain
 {
-    private static $url_segment = 'find';
-
-    private static $menu_title = 'Edit Anything';
-
-    private static $menu_priority = 99999;
-
-    private static $required_permission_codes = false;
-
     protected $listHTML = '';
 
     protected $keywords = '';
@@ -32,6 +24,14 @@ class SearchAdmin extends LeftAndMain
 
     protected $rawData = null;
 
+    private static $url_segment = 'find';
+
+    private static $menu_title = 'Edit Anything';
+
+    private static $menu_priority = 99999;
+
+    private static $required_permission_codes = false;
+
     public function getEditForm($id = null, $fields = null)
     {
         $form = parent::getEditForm($id, $fields);
@@ -39,7 +39,6 @@ class SearchAdmin extends LeftAndMain
         if ($form instanceof HTTPResponse) {
             return $form;
         }
-        //
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
@@ -63,7 +62,6 @@ class SearchAdmin extends LeftAndMain
         return $form;
     }
 
-
     public function save($data, $form)
     {
         Environment::setTimeLimitMax(120);
@@ -74,7 +72,7 @@ class SearchAdmin extends LeftAndMain
         $request = $this->getRequest();
 
         $this->rawData = $data;
-        $this->listHTML = $this->renderWith(self::class.'_Results');
+        $this->listHTML = $this->renderWith(self::class . '_Results');
         // Existing or new record?
 
         $message = _t(__CLASS__ . '.SAVEDUP', 'Searched Completed');
@@ -90,7 +88,6 @@ class SearchAdmin extends LeftAndMain
         return $response;
     }
 
-
     /**
      * Only show first element, as the profile form is limited to editing
      * the current member it doesn't make much sense to show the member name
@@ -102,15 +99,15 @@ class SearchAdmin extends LeftAndMain
     public function Breadcrumbs($unlinked = false)
     {
         $items = parent::Breadcrumbs($unlinked);
-        return new ArrayList(array($items[0]));
+        return new ArrayList([$items[0]]);
     }
 
-    public function SearchResults() : ?ArrayList
+    public function SearchResults(): ?ArrayList
     {
-        if($this->rawData) {
+        if ($this->rawData) {
             $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
             $this->keywords = trim($this->rawData['Keywords'] ?? '');
-            if($this->keywords) {
+            if ($this->keywords) {
                 $words = explode(', ', $this->rawData['Keywords']);
                 return Injector::inst()->get(SearchApi ::class)
                     ->setBaseClass(DataObject::class)

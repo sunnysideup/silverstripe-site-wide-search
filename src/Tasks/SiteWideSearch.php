@@ -1,15 +1,11 @@
 <?php
+
 namespace Sunnysideup\SiteWideSearch\Tasks;
 
-use SilverStripe\Assets\Image;
-use SilverStripe\Dev\BuildTask;
-use SilverStripe\ORM\DataObject;
-use SilverStripe\ORM\DB;
-use SilverStripe\ORM\Queries\SQLSelect;
-use SilverStripe\ORM\Queries\SQLUpdate;
-use SilverStripe\Security\Permission;
 use SilverStripe\Core\Convert;
 use SilverStripe\Core\Environment;
+use SilverStripe\Dev\BuildTask;
+use SilverStripe\ORM\DB;
 
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
@@ -38,42 +34,42 @@ class SiteWideSearch extends BuildTask
         Environment::setTimeLimitMax(600);
         $debug = $request->getVar('debug') ? 'checked="checked"' : '';
         $word = Convert::raw2att($request->getVar('word'));
-            $html = '
+        $html = '
 <form methd="get" action="">
     <h2>Enter Search Word(s):</h2>
-    <input name="word" value="'.$word.'" />
+    <input name="word" value="' . $word . '" />
     <input type="submit" value="search" />
     <br />
-    <br />debug: <input name="debug" type="checkbox" '.$debug.'  />
+    <br />debug: <input name="debug" type="checkbox" ' . $debug . '  />
 </form>
 ';
-            echo $html;
-        if($request->getVar('word')) {
+        echo $html;
+        if ($request->getVar('word')) {
             $api = SearchApi::create();
-            if($debug) {
+            if ($debug) {
                 $api->setDebug(true);
             }
             $words = explode(',', $request->getVar('word'));
-            foreach($words as $word) {
+            foreach ($words as $word) {
                 $innerWords = explode(' ', $word);
-                foreach($innerWords as $finalWord) {
+                foreach ($innerWords as $finalWord) {
                     $api->addWord(trim($finalWord));
                 }
             }
             $links = $api->getLinks();
-            foreach($links as $link) {
+            foreach ($links as $link) {
                 $item = $link->Object;
-                $title = $item->getTitle().' ('.$item->i18n_singular_name().')';
-                if($debug) {
-                    $title .= ' ... ' . $item->ClassName . ', '.$item->ID;
+                $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
+                if ($debug) {
+                    $title .= ' ... ' . $item->ClassName . ', ' . $item->ID;
                 }
-                if($link->HasLink) {
-                    DB::alteration_message('<a href="'.$link->Link.'">'.$title.'</a>', 'created');
+                if ($link->HasLink) {
+                    DB::alteration_message('<a href="' . $link->Link . '">' . $title . '</a>', 'created');
                 } else {
                     DB::alteration_message($title, 'obsolete');
                 }
-                if($link->HasCMSEditLink) {
-                    DB::alteration_message('<a href="'.$link->CMSEditLink.'">edit it</a>', 'created');
+                if ($link->HasCMSEditLink) {
+                    DB::alteration_message('<a href="' . $link->CMSEditLink . '">edit it</a>', 'created');
                 } else {
                     DB::alteration_message('no edit available', 'obsolete');
                 }
