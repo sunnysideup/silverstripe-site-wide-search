@@ -7,7 +7,8 @@ use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FormAction;
-use SilverStripe\Forms\ReadonlyField;
+use SilverStripe\Forms\HTMLReadonlyField;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
@@ -55,7 +56,10 @@ class SearchAdmin extends LeftAndMain
             $this->listHTML = '(none)';
         }
         $form->Fields()->push(
-            (new ReadonlyField('List', 'Search Results', DBField::create_field('HTMLText', $this->listHTML)))
+            (new HTMLReadonlyField('List', 'Search Results', DBField::create_field('HTMLText', $this->listHTML)))
+        );
+        $form->Fields()->push(
+            (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
         );
         $form->Actions()->push(
             FormAction::create('save', 'Find')
