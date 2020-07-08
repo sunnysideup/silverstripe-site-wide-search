@@ -13,6 +13,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBString;
 use SilverStripe\Security\LoginAttempt;
+use SilverStripe\Security\Group;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\View\ArrayData;
@@ -110,6 +111,7 @@ class SearchApi
 
         foreach ($matches as $className => $ids) {
             if (count($ids)) {
+                $className = (string) $className;
                 $items = $className::get()->filter(['ID' => $ids])->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
                     $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);

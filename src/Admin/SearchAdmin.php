@@ -11,6 +11,7 @@ use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
+use SilverStripe\Control\HTTPResponse;
 
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
@@ -26,7 +27,9 @@ class SearchAdmin extends LeftAndMain
 
     private static $url_segment = 'find';
 
-    private static $menu_title = 'Edit Anything';
+    private static $menu_title = 'Search';
+
+    // private static $menu_icon = 'silverstripe/cms:images/search.svg';
 
     private static $menu_priority = 99999;
 
@@ -36,9 +39,6 @@ class SearchAdmin extends LeftAndMain
     {
         $form = parent::getEditForm($id, $fields);
 
-        if ($form instanceof HTTPResponse) {
-            return $form;
-        }
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
@@ -75,14 +75,9 @@ class SearchAdmin extends LeftAndMain
         $this->listHTML = $this->renderWith(self::class . '_Results');
         // Existing or new record?
 
-        $message = _t(__CLASS__ . '.SAVEDUP', 'Searched Completed');
-        if ($this->getSchemaRequested()) {
-            $form->setMessage($message, 'good');
-            $response = $this->getSchemaResponse($schemaId, $form);
-        } else {
-            $response = $this->getResponseNegotiator()->respond($request);
-        }
+        $response = $this->getResponseNegotiator()->respond($request);
 
+        $message = _t(__CLASS__ . '.SEARCH_COMPLETED', 'Searched Completed');
         $response->addHeader('X-Status', rawurlencode($message));
 
         return $response;
