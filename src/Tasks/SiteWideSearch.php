@@ -72,6 +72,11 @@ class SiteWideSearch extends BuildTask
                 } else {
                     DB::alteration_message($title, 'obsolete');
                 }
+                if($link->HasCMSEditLink) {
+                    DB::alteration_message('<a href="'.$link->CMSEditLink.'">edit it</a>', 'created');
+                } else {
+                    DB::alteration_message('no edit available', 'obsolete');
+                }
             }
         }
     }

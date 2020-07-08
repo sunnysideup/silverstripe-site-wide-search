@@ -7,20 +7,30 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\Forms\TextField;
 use SilverStripe\Forms\FormAction;
+use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Core\Environment;
+use SilverStripe\Core\Injector\Injector;
+
+use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SearchAdmin extends LeftAndMain
 {
     private static $url_segment = 'find';
 
-    private static $menu_title = 'Find Content';
+    private static $menu_title = 'Edit Anything';
 
     private static $menu_priority = 99999;
 
     private static $required_permission_codes = false;
 
-    private static $tree_class = DataObject::class;
+    protected $listHTML = '';
+
+    protected $keywords = '';
+
+    protected $isQuickSearch = false;
+
+    protected $rawData = null;
 
     public function getEditForm($id = null, $fields = null)
     {
@@ -32,11 +42,15 @@ class SearchAdmin extends LeftAndMain
         //
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
-            (new TextField('Keywords'))
+            (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
                 ->setAttribute('placeholder', 'e.g. insurance OR rental agreement')
         );
         $form->Fields()->push(
-            (new CheckboxField('QuickSearch'))
+            (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
+                ->setDescription('Only search main fields?')
+        );
+        $form->Fields()->push(
+            (new LiteralField('List', $this->listHTML))
                 ->setDescription('Only search main fields?')
         );
         $form->Actions()->push(
@@ -58,18 +72,12 @@ class SearchAdmin extends LeftAndMain
             return $this->redirectBack();
         }
         $request = $this->getRequest();
-        $words = explode(', ', $data['Keywords']);
-        $myLinks = Injector::inst()->get(SearchApi::class)
-            ->setBaseClass(DataObject::class)
-            ->setExcludedClasses([MyMemberDetails::class])
-            ->setExcludedFields(['SecretStuff'])
-            ->setIsQuickSearch($data['QuickSearch'])
-            ->setWords($words)
-            ->getLinks();
 
+        $this->rawData = $data;
+        $this->listHTML = $this->renderWith(self::class.'_Results');
         // Existing or new record?
 
-        $message = _t(__CLASS__ . '.SAVEDUP', 'Searched.');
+        $message = _t(__CLASS__ . '.SAVEDUP', 'Searched Completed');
         if ($this->getSchemaRequested()) {
             $form->setMessage($message, 'good');
             $response = $this->getSchemaResponse($schemaId, $form);
@@ -95,5 +103,22 @@ class SearchAdmin extends LeftAndMain
     {
         $items = parent::Breadcrumbs($unlinked);
         return new ArrayList(array($items[0]));
+    }
+
+    public function SearchResults() : ?ArrayList
+    {
+        if($this->rawData) {
+            $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
+            $this->keywords = trim($this->rawData['Keywords'] ?? '');
+            if($this->keywords) {
+                $words = explode(', ', $this->rawData['Keywords']);
+                return Injector::inst()->get(SearchApi ::class)
+                    ->setBaseClass(DataObject::class)
+                    ->setIsQuickSearch($this->isQuickSearch)
+                    ->setWords($words)
+                    ->getLinks();
+            }
+        }
+        return null;
     }
 }

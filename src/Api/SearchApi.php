@@ -9,6 +9,7 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Security\Member;
+use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
@@ -37,6 +38,7 @@ class SearchApi {
         Member::class,
         Group::class,
         MemberPassword::class,
+        LoginAttempt::class,
     ];
     private static $default_exclude_fields = [
         'ClassName',
@@ -53,7 +55,7 @@ class SearchApi {
 
     protected $baseClass = DataObject::class;
 
-    public function setBaseClase(string $class) : SearchApi
+    public function setBaseClass(string $class) : SearchApi
     {
         $this->baseClass = $class;
 
@@ -200,7 +202,7 @@ class SearchApi {
         $fields = Config::inst()->get(get_class($singleton), 'db');
         if(is_array($fields)) {
             if($this->isQuickSearch) {
-                $fields = $this->getIndexedField($singleton, $availableFields);
+                $fields = $this->getIndexedField($singleton, $fields);
             }
             foreach(array_keys($fields) as $name)
             {
@@ -218,23 +220,25 @@ class SearchApi {
     {
         $array = [];
         $indexes = Config::inst()->get(get_class($singleton), 'indexes');
-        foreach($indexes as $key => $field) {
-            if(isset($availableFields[$key])) {
-                $array[$key] = $key;
-            } elseif(is_array($field)) {
-                foreach($field as $test) {
-                    if(is_array($test)) {
-                        if(isset($test['columns'])) {
-                            $test = $test['columns'];
-                        } else {
-                            continue;
+        if(is_array($indexes)) {
+            foreach($indexes as $key => $field) {
+                if(isset($availableFields[$key])) {
+                    $array[$key] = $key;
+                } elseif(is_array($field)) {
+                    foreach($field as $test) {
+                        if(is_array($test)) {
+                            if(isset($test['columns'])) {
+                                $test = $test['columns'];
+                            } else {
+                                continue;
+                            }
                         }
-                    }
-                    $testArray = explode(',', $test);
-                    foreach($testArray as $testInner) {
-                        $testInner = trim($testInner);
-                        if(isset($availableFields[$testInner])) {
-                            $array[$testInner] = $testInner;
+                        $testArray = explode(',', $test);
+                        foreach($testArray as $testInner) {
+                            $testInner = trim($testInner);
+                            if(isset($availableFields[$testInner])) {
+                                $array[$testInner] = $testInner;
+                            }
                         }
                     }
                 }

@@ -36,13 +36,13 @@ class FindEditableObjects {
      */
     protected $cache = [];
 
-    private static $max_search_per_class_name = 100;
+    private static $max_search_per_class_name = 5;
 
     private static $valid_methods_edit = [
         'CMSEditLink',
         'getCMSEditLink',
     ];
-    
+
     private static $valid_methods_view = [
         'getLink',
         'Link',
@@ -98,22 +98,26 @@ class FindEditableObjects {
         // quick return
         if(isset($this->cache[$type][$dataObject->ClassName]) && $this->cache[$type][$dataObject->ClassName] !== true) {
             $method = $this->cache[$type][$dataObject->ClassName];
-            return $dataObject->$method();
+            return (string) $dataObject->$method();
         }
         if(! in_array($dataObject->ClassName, $this->excludedClasses)) {
             if(empty($this->cache[$type][$dataObject->ClassName]) || $this->cache[$type][$dataObject->ClassName] !== true) {
                 foreach ($validMethods as $validMethod) {
                     if ($dataObject->hasMethod($validMethod)) {
-                        $this->cache[$type][$dataObject->ClassName] = $validMethod;
-
-                        return $dataObject->$validMethod();
+                        $outcome = $dataObject->$validMethod();
+                        if($outcome) {
+                            $this->cache[$type][$dataObject->ClassName] = $validMethod;
+                            return $outcome;
+                        }
                     }
                 }
             }
-            if( class_exists(CMSEditLinkAPI::class)) {
-                $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
-                if($link) {
-                    return $link;
+            if($type === 'valid_methods_edit') {
+                if( class_exists(CMSEditLinkAPI::class)) {
+                    $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
+                    if($link) {
+                        return (string) $link;
+                    }
                 }
             }
         }
