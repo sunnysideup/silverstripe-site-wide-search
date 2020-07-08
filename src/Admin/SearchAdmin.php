@@ -39,6 +39,9 @@ class SearchAdmin extends LeftAndMain
     {
         $form = parent::getEditForm($id, $fields);
 
+        if ($form instanceof HTTPResponse) {
+            return $form;
+        }
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
