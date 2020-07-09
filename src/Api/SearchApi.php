@@ -3,6 +3,7 @@
 namespace Sunnysideup\SiteWideSearch\Api;
 
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
+use Sunnysideup\SiteWideSearch\Helpers\Cache;
 
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
@@ -42,8 +43,6 @@ class SearchApi
     private static $limit_of_count_per_data_object = 999;
 
     private static $default_exclude_classes = [
-        Member::class,
-        Group::class,
         MemberPassword::class,
         LoginAttempt::class,
     ];
@@ -101,6 +100,72 @@ class SearchApi
         return $this;
     }
 
+    /**
+     * format is as follows:
+     *      [
+     *          'valid_methods_edit' => [
+     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
+     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
+     *              ClassNameD => true, // tested and does not have any available methods
+     *          ],
+     *          'valid_methods_view' => [
+     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
+     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
+     *              ClassNameD => true, // tested and does not have any available methods
+     *          ],
+     *          'valid_methods_view_links' => [
+     *              [ClassNameX_IDY] => 'MyLinkView',
+     *              [ClassNameX_IDZ] => 'MyLinkView',
+     *          ],
+     *          'valid_methods_edit_links' => [
+     *              [ClassNameX_IDY] => 'MyLinkEdit',
+     *              [ClassNameX_IDZ] => 'MyLinkEdit',
+     *          ],
+     *          'rels' =>
+     *              'ClassNameY' => [
+     *                  'MethodA' => RelationClassNameB,
+     *                  'MethodC' => RelationClassNameD,
+     *              ],
+     *          ],
+     *          'validMethod' => [
+     *              'valid_methods_edit' => [
+     *                  'A',
+     *                  'B',
+     *              ]
+     *              'valid_methods_view' => [
+     *                  'A',
+     *                  'B',
+     *              ]
+     *          ]
+     *     ]
+     * we use true rather than false to be able to use empty to work out if it has been tested before
+     *
+     * @var array
+     */
+    protected $cache = [];
+
+    public function getFileCache()
+    {
+        return Injector::inst()->get(Cache::class);
+    }
+
+    public function initCache() : self
+    {
+        $this->cache = $this->getFileCache()->getCacheValues(self::class);
+
+        return $this;
+    }
+
+    public function saveCache() : self
+    {
+        $this->getFileCache()->setCacheValues(self::class, $this->cache);
+
+        return $this;
+    }
+
+
     public function __construct()
     {
         Environment::increaseTimeLimitTo(300);
@@ -110,6 +175,7 @@ class SearchApi
 
     public function getLinks(string $word = ''): ArrayList
     {
+        $this->initCache();
         if ($this->debug) {
             $start = microtime(true);
         }
@@ -120,8 +186,10 @@ class SearchApi
             DB::alteration_message('seconds taken find results: ' . $elaps);
         }
 
+        $list = $this->turnMatchesIntoList($matches);
+        $this->saveCache();
 
-        return $this->turnMatchesIntoList($matches);
+        return $list;
     }
 
     protected function turnMatchesIntoList(array $matches) : ArrayList
@@ -161,6 +229,7 @@ class SearchApi
                                     'Link' => $link,
                                     'CMSEditLink' => $cmsEditLink,
                                     'Object' => $item,
+                                    'SiteWideSearchSortValue' => $this->getSortValue($item),
                                 ]
                             )
                         );
@@ -173,6 +242,8 @@ class SearchApi
             }
         }
         $finder->saveCache();
+
+        $list->sort('SiteWideSearchSortValue', 'ASC');
 
         return $list;
     }
@@ -187,15 +258,13 @@ class SearchApi
         }
         $array = [];
 
-        $this->words = array_unique($this->words);
         foreach ($this->getAllDataObjects() as $className) {
             if ($this->debug) {
                 DB::alteration_message(' .. Searching in ' . $className);
             }
             if (! in_array($className, $this->excludedClasses, true)) {
                 $array[$className] = [];
-                $singleton = Injector::inst()->get($className);
-                $fields = $this->getAllValidFields($singleton);
+                $fields = $this->getAllValidFields($className);
                 $filterAny = [];
                 foreach ($fields as $field) {
                     if ($this->debug) {
@@ -227,6 +296,61 @@ class SearchApi
         return $array;
     }
 
+    protected function getSortValue($item)
+    {
+        $className = $item->ClassName;
+        $fields = $this->getAllValidFields();
+        $fullWords = implode(' ', $this->words);
+
+        $done = false;
+        $score = 0;
+        if($fullWords) {
+            $fieldValues = [];
+            $fieldValuesAll = '';
+            $testWords = array_merge(
+                [$fullWords],
+                $this->words
+            );
+            foreach($testWords as $wordKey => $word) {
+                $fullWords = true;
+                if($wordKey) {
+                    $fullWords = false;
+                }
+                if($done === false) {
+                    foreach($fields as $field) {
+                        $score = $score++;
+                        $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
+                        if($fieldValues[$field] === $word) {
+                            $done = true;
+                            break;
+                        }
+                    }
+                }
+                if(! $fieldValuesAll) {
+                    $fieldValuesAll = implode(' ', $fieldValues);
+                }
+                if($done === false) {
+                    $score += 1000;
+                    $test = strpos($fieldValuesAll, $word);
+                    if($test !== false) {
+                        $score += ($test + 1) / strlen($word);
+                        $done = true;
+                    }
+                }
+
+                //add if we are moving to individual words
+                if($fullWords) {
+                    $score += 1000;
+                }
+            }
+        } else {
+            $done = true;
+        }
+
+        //the newer the item, the more likely
+        return $score + (1 / strototime($item->LastEdited));
+    }
+
     protected function workOutExclusions()
     {
         $this->excludedClasses = array_unique(
@@ -243,7 +367,7 @@ class SearchApi
         );
     }
 
-    protected function workOutWords(string $word = '')
+    protected function workOutWords(string $word = '') : array
     {
         if ($word) {
             $this->words[] = $word;
@@ -251,6 +375,11 @@ class SearchApi
         if (! count($this->words)) {
             user_error('No word has been provided');
         }
+        $this->words = array_unique($this->words);
+        $this->words = array_filter($this->words);
+        $this->words = array_map('strtolower', $this->words);
+
+        return $this->words;
     }
 
     protected function getAllDataObjects(): array
@@ -258,50 +387,70 @@ class SearchApi
         if ($this->debug) {
             DB::alteration_message('Base Class: ' . $this->baseClass);
         }
-        return ClassInfo::subclassesFor($this->baseClass, true);
+        if(! isset($this->cache['AllDataObjects'][$this->baseClass])) {
+            if(! isset($this->cache['AllDataObjects'])) {
+                $this->cache['AllDataObjects'] = [];
+            }
+            $this->cache['AllDataObjects'][$this->baseClass] = ClassInfo::subclassesFor($this->baseClass, true);
+        }
+
+        return $this->cache['AllDataObjects'][$this->baseClass];
     }
 
-    protected function getAllValidFields($singleton): array
+    protected function getAllValidFields(string $className): array
     {
-        $array = [];
-        $fields = Config::inst()->get(get_class($singleton), 'db');
-        if (is_array($fields)) {
-            if ($this->isQuickSearch) {
-                $fields = $this->getIndexedFields($singleton, $fields);
+        $listofTextFieldClasses = $this->getListOfTextClasses();
+        if(! isset($this->cache['AllValidFields'][$className])) {
+            if(! isset($this->cache['AllValidFields'])) {
+                $this->cache['AllValidFields'] = [];
             }
-            foreach (array_keys($fields) as $name) {
-                $dbField = $singleton->dbObject($name);
-                if ($dbField instanceof DBString) {
-                    $array[$name] = $name;
+            $this->cache['AllValidFields'][$className] = Config::inst()->get($className, 'db');
+            if (is_array($this->cache['AllValidFields'][$className])) {
+                if ($this->isQuickSearch) {
+                    $this->cache['AllValidFields'][$className] = $this->getIndexedFields(
+                        $className,
+                        $this->cache['AllValidFields'][$className]
+                    );
+                }
+                foreach (array_keys($this->cache['AllValidFields'][$className]) as $name) {
+                    if (in_array($name, $listofTextFieldClasses , 1)) {
+                        $this->cache['AllValidFields'][$className][$name] = $name;
+                    } else {
+                        unset($this->cache['AllValidFields'][$className][$name]);
+                    }
                 }
             }
         }
-
-        return $array;
+        return $this->cache['AllValidFields'][$className];
     }
 
-    protected function getIndexedFields($singleton, array $availableFields): array
+    protected function getIndexedFields(string $className, array $availableFields): array
     {
-        $array = [];
-        $indexes = Config::inst()->get(get_class($singleton), 'indexes');
-        if (is_array($indexes)) {
-            foreach ($indexes as $key => $field) {
-                if (isset($availableFields[$key])) {
-                    $array[$key] = $key;
-                } elseif (is_array($field)) {
-                    foreach ($field as $test) {
-                        if (is_array($test)) {
-                            if (isset($test['columns'])) {
-                                $test = $test['columns'];
-                            } else {
-                                continue;
+        if(! isset($this->cache['IndexedFields'][$className])) {
+            if(! isset($this->cache['IndexedFields'])) {
+                $this->cache['IndexedFields'] = [];
+            }
+            $this->cache['IndexedFields'][$className] = [];
+            $indexes = Config::inst()->get($className, 'indexes');
+            if (is_array($indexes)) {
+                foreach ($indexes as $key => $field) {
+                    if (isset($availableFields[$key])) {
+                        $this->cache['IndexedFields'][$className][$key] = $key;
+                    } elseif (is_array($field)) {
+                        foreach ($field as $test) {
+                            if (is_array($test)) {
+                                if (isset($test['columns'])) {
+                                    $test = $test['columns'];
+                                } else {
+                                    continue;
+                                }
                             }
-                        }
-                        $testArray = explode(',', $test);
-                        foreach ($testArray as $testInner) {
-                            $testInner = trim($testInner);
-                            if (isset($availableFields[$testInner])) {
-                                $array[$testInner] = $testInner;
+                            $testArray = explode(',', $test);
+                            foreach ($testArray as $testInner) {
+                                $testInner = trim($testInner);
+                                if (isset($availableFields[$testInner])) {
+                                    $this->cache['IndexedFields'][$className][$testInner] = $testInner;
+                                }
                             }
                         }
                     }
@@ -309,6 +458,28 @@ class SearchApi
             }
         }
 
+        return $this->cache['IndexedFields'][$className];
+    }
+
+    protected function defaultList() : array
+    {
+        $threshold = strtotime('-3 days', DBDatetime::now()->getTimestamp());
+        $array = [];
+        foreach($this->getAllDataObjects() as $className) {
+            $array[$className] = $className::get()
+                ->filter('LastEdited:GreaterThan', date("Y-m-d H:i:s", $threshold))
+                ->column('ID');
+
+        }
         return $array;
     }
+
+    protected function getListOfTextClasses() : array
+    {
+        if(! isset($this->cache['ListOfTextClasses'])) {
+            $this->cache['ListOfTextClasses'] = ClassInfo::subclassesFor(DBString::class);
+        }
+        return $this->cache['ListOfTextClasses'];
+    }
+
 }

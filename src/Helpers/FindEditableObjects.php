@@ -22,6 +22,24 @@ class FindEditableObjects
     use Configurable;
     use Injectable;
 
+
+    protected $relationTypesCovered = [];
+
+    protected $excludedClasses = [];
+
+    private static $max_relation_depth = 3;
+
+    private static $valid_methods_edit = [
+        'CMSEditLink',
+        'getCMSEditLink',
+    ];
+
+    private static $valid_methods_view = [
+        'getLink',
+        'Link',
+    ];
+
+
     private const CACHE_NAME = 'FindEditableObjectsCache';
 
     /**
@@ -69,23 +87,6 @@ class FindEditableObjects
      * @var array
      */
     protected $cache = [];
-
-    protected $relationTypesCovered = [];
-
-    protected $excludedClasses = [];
-
-    private static $max_relation_depth = 3;
-
-    private static $valid_methods_edit = [
-        'CMSEditLink',
-        'getCMSEditLink',
-    ];
-
-    private static $valid_methods_view = [
-        'getLink',
-        'Link',
-    ];
-
 
     public function getFileCache()
     {
