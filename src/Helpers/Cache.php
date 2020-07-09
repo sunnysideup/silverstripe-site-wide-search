@@ -22,10 +22,14 @@ class Cache implements Flushable
      */
     public static function flush()
     {
-        Cache::get_file_cache()->clear();
+        $obj = Injector::inst()->get(Cache::class);
+        $cache = $obj->getCache();
+        if($cache) {
+            $cache->clear();
+        }
     }
 
-    protected function getCache()
+    public function getCache()
     {
         return Injector::inst()->get(CacheInterface::class . '.siteWideSearch');
     }

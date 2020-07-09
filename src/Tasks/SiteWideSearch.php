@@ -44,35 +44,28 @@ class SiteWideSearch extends BuildTask
 </form>
 ';
         echo $html;
-        if ($request->getVar('word')) {
-            $api = SearchApi::create();
+        $api = SearchApi::create();
+        if ($debug) {
+            $api->setDebug(true);
+        }
+        $api->setWordsAsString((string) $request->getVar('word'));
+        $links = $api->getLinks();
+        echo '<h2>results</h2>';
+        foreach ($links as $link) {
+            $item = $link->Object;
+            $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
             if ($debug) {
-                $api->setDebug(true);
+                $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: '.$link->SiteWideSearchSortValue;
             }
-            $words = explode(',', $request->getVar('word'));
-            foreach ($words as $word) {
-                $innerWords = explode(' ', $word);
-                foreach ($innerWords as $finalWord) {
-                    $api->addWord(trim($finalWord));
-                }
+            if ($link->HasCMSEditLink) {
+                $cmsEditLink = '<a href="' . $link->CMSEditLink . '">✎</a> ...';
+            } else {
+                $cmsEditLink = 'x  ...';
             }
-            $links = $api->getLinks();
-            foreach ($links as $link) {
-                $item = $link->Object;
-                $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
-                if ($debug) {
-                    $title .= ' ... ' . $item->ClassName . ', ' . $item->ID;
-                }
-                if ($link->HasLink) {
-                    DB::alteration_message('<a href="' . $link->Link . '">' . $title . '</a>', 'created');
-                } else {
-                    DB::alteration_message($title, 'obsolete');
-                }
-                if ($link->HasCMSEditLink) {
-                    DB::alteration_message('<a href="' . $link->CMSEditLink . '">edit it</a>', 'created');
-                } else {
-                    DB::alteration_message('no edit available', 'obsolete');
-                }
+            if ($link->HasLink) {
+                DB::alteration_message($cmsEditLink.'<a href="' . $link->Link . '">' . $title . '</a> - ' , 'created');
+            } else {
+                DB::alteration_message($cmsEditLink.$title, 'obsolete');
             }
         }
     }

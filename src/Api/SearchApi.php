@@ -16,6 +16,7 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBString;
+use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\Security\Group;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\Member;
@@ -42,6 +43,11 @@ class SearchApi
 
     private static $limit_of_count_per_data_object = 999;
 
+    private static $hours_back_for_recent = 48;
+
+    private static $limit_per_class_for_recent = 5;
+
+
     private static $default_exclude_classes = [
         MemberPassword::class,
         LoginAttempt::class,
@@ -49,6 +55,9 @@ class SearchApi
 
     private static $default_exclude_fields = [
         'ClassName',
+        'LastEdited',
+        'Created',
+        'ID',
     ];
 
     public function setDebug(bool $b): SearchApi
@@ -86,6 +95,13 @@ class SearchApi
         return $this;
     }
 
+    public function setWordsAsString(string $s): SearchApi
+    {
+        $this->words = explode(' ', $s);
+
+        return $this;
+    }
+
     public function setWords(array $a): SearchApi
     {
         $this->words = array_combine($a, $a);
@@ -102,65 +118,60 @@ class SearchApi
 
     /**
      * format is as follows:
+     * ```php
      *      [
-     *          'valid_methods_edit' => [
-     *              ClassNameA => true, // tested and does not have any available methods
-     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
-     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
-     *              ClassNameD => true, // tested and does not have any available methods
-     *          ],
-     *          'valid_methods_view' => [
-     *              ClassNameA => true, // tested and does not have any available methods
-     *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
-     *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
-     *              ClassNameD => true, // tested and does not have any available methods
-     *          ],
-     *          'valid_methods_view_links' => [
-     *              [ClassNameX_IDY] => 'MyLinkView',
-     *              [ClassNameX_IDZ] => 'MyLinkView',
-     *          ],
-     *          'valid_methods_edit_links' => [
-     *              [ClassNameX_IDY] => 'MyLinkEdit',
-     *              [ClassNameX_IDZ] => 'MyLinkEdit',
-     *          ],
-     *          'rels' =>
-     *              'ClassNameY' => [
-     *                  'MethodA' => RelationClassNameB,
-     *                  'MethodC' => RelationClassNameD,
+     *          'AllDataObjects' => [
+     *              'BaseClassUsed' => [
+     *                  0 => ClassNameA,
+     *                  1 => ClassNameB,
      *              ],
      *          ],
-     *          'validMethod' => [
-     *              'valid_methods_edit' => [
-     *                  'A',
-     *                  'B',
-     *              ]
-     *              'valid_methods_view' => [
-     *                  'A',
-     *                  'B',
-     *              ]
-     *          ]
-     *     ]
+     *          'AllValidFields' => [
+     *              'ClassNameA' => [
+     *                  'FieldA' => 'FieldA'
+     *              ],
+     *          ],
+     *          'IndexedFields' => [
+     *              'ClassNameA' => [
+     *                  0 => ClassNameA,
+     *                  1 => ClassNameB,
+     *              ],
+     *          ],
+     *          'ListOfTextClasses' => [
+     *              0 => ClassNameA,
+     *              1 => ClassNameB,
+     *          ],
+     *          'ValidFieldTypes' => [
+     *              'Varchar(30)' => true,
+     *              'Boolean' => false,
+     *          ],
+     *     ],
+     * ```
      * we use true rather than false to be able to use empty to work out if it has been tested before
      *
      * @var array
      */
-    protected $cache = [];
+    protected $cache = [
+
+    ];
 
     public function getFileCache()
     {
         return Injector::inst()->get(Cache::class);
     }
 
+    private const CACHE_NAME = 'SearchApi';
+
     public function initCache() : self
     {
-        $this->cache = $this->getFileCache()->getCacheValues(self::class);
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME);
 
         return $this;
     }
 
     public function saveCache() : self
     {
-        $this->getFileCache()->setCacheValues(self::class, $this->cache);
+        $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
 
         return $this;
     }
@@ -192,6 +203,85 @@ class SearchApi
         return $list;
     }
 
+
+
+    protected function getMatches(string $word = '') : array
+    {
+        $this->workOutExclusions();
+        $this->workOutWords($word);
+
+        if ($this->debug) {
+            DB::alteration_message('Words searched for ' . implode(', ', $this->words));
+        }
+        $array = [];
+
+        if(count($this->words)) {
+
+            foreach ($this->getAllDataObjects() as $className) {
+                if ($this->debug) {
+                    DB::alteration_message(' ... Searching in ' . $className);
+                }
+                if (! in_array($className, $this->excludedClasses, true)) {
+                    $array[$className] = [];
+                    $fields = $this->getAllValidFields($className);
+                    $filterAny = [];
+                    foreach ($fields as $field) {
+                        if (! in_array($field, $this->excludedFields, true)) {
+                            if ($this->debug) {
+                                DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
+                            }
+                            $filterAny[$field . ':PartialMatch'] = $this->words;
+                        }
+                    }
+                    if (count($filterAny)) {
+                        if ($this->debug) {
+                            DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
+                        }
+                        if ($this->debug) {
+                            $start = microtime(true);
+                        }
+                        $array[$className] = $className::get()
+                            ->filterAny($filterAny)
+                            ->limit($this->Config()->get('limit_of_count_per_data_object'))
+                            ->column('ID');
+                        if ($this->debug) {
+                            $elaps = microtime(true) - $start;
+                            DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
+                        }
+                    }
+                } else {
+                    if ($this->debug) {
+                        DB::alteration_message(' ... Skipping ' . $className);
+                    }
+                }
+            }
+        } else {
+            $array = $this->getDefaultList();
+        }
+
+        return $array;
+    }
+
+
+    protected function getDefaultList() : array
+    {
+        $back = $this->config()->get('hours_back_for_recent') ?? 24;
+        $limit = $this->Config()->get('limit_per_class_for_recent') ?? 5;
+        $threshold = strtotime('-'.$back.' hours', DBDatetime::now()->getTimestamp());
+        $array = [];
+        $classNames = $this->getAllDataObjects();
+        foreach($classNames as $className) {
+            if (! in_array($className, $this->excludedClasses, true)) {
+                $array[$className] = $className::get()
+                    ->filter('LastEdited:GreaterThan', date("Y-m-d H:i:s", $threshold))
+                    ->sort('LastEdited', 'DESC')
+                    ->limit($limit)
+                    ->column('ID');
+            }
+        }
+        return $array;
+    }
+
     protected function turnMatchesIntoList(array $matches) : ArrayList
     {
         // helper
@@ -201,19 +291,18 @@ class SearchApi
         //return values
         $list = ArrayList::create();
         if ($this->debug) {
-            DB::alteration_message('number of matched classes: ' . count($matches));
+            DB::alteration_message('number of classes: ' . count($matches));
         }
         foreach ($matches as $className => $ids) {
             if (count($ids)) {
                 if ($this->debug) {
                     $start = microtime(true);
-                    DB::alteration_message('matches for : ' . $className . ': ' . count($ids));
+                    DB::alteration_message(' ... number of matches for : ' . $className . ': ' . count($ids));
                 }
                 $className = (string) $className;
                 $items = $className::get()
                     ->filter(['ID' => $ids])
-                    ->limit($this->Config()
-                    ->get('limit_of_count_per_data_object'));
+                    ->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
                     if ($item->canView()) {
                         $link = $finder->getLink($item, $this->excludedClasses);
@@ -243,63 +332,16 @@ class SearchApi
         }
         $finder->saveCache();
 
-        $list->sort('SiteWideSearchSortValue', 'ASC');
+        // $list->sort('SiteWideSearchSortValue', 'ASC');
 
         return $list;
     }
 
-    public function getMatches(string $word = ''): array
-    {
-        $this->workOutExclusions();
-        $this->workOutWords($word);
-
-        if ($this->debug) {
-            DB::alteration_message('Words searched for ' . implode(', ', $this->words));
-        }
-        $array = [];
-
-        foreach ($this->getAllDataObjects() as $className) {
-            if ($this->debug) {
-                DB::alteration_message(' .. Searching in ' . $className);
-            }
-            if (! in_array($className, $this->excludedClasses, true)) {
-                $array[$className] = [];
-                $fields = $this->getAllValidFields($className);
-                $filterAny = [];
-                foreach ($fields as $field) {
-                    if ($this->debug) {
-                        DB::alteration_message(' .. .. Searching in ' . $className . '.' . $field);
-                    }
-                    if (! in_array($field, $this->excludedFields, true)) {
-                        $filterAny[$field . ':PartialMatch'] = $this->words;
-                    }
-                }
-                if (count($filterAny)) {
-                    if ($this->debug) {
-                        DB::alteration_message(' .. Filter: ' . implode(', ', array_keys($filterAny)));
-                    }
-                    if ($this->debug) {
-                        $start = microtime(true);
-                    }
-                    $array[$className] = $className::get()
-                        ->filterAny($filterAny)
-                        ->limit($this->Config()->get('limit_of_count_per_data_object'))
-                        ->column('ID');
-                    if ($this->debug) {
-                        $elaps = microtime(true) - $start;
-                        DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
-                    }
-                }
-            }
-        }
-
-        return $array;
-    }
 
     protected function getSortValue($item)
     {
         $className = $item->ClassName;
-        $fields = $this->getAllValidFields();
+        $fields = $this->getAllValidFields($className);
         $fullWords = implode(' ', $this->words);
 
         $done = false;
@@ -311,15 +353,15 @@ class SearchApi
                 [$fullWords],
                 $this->words
             );
+            $testWords = array_unique($testWords);
             foreach($testWords as $wordKey => $word) {
-                $fullWords = true;
-                if($wordKey) {
-                    $fullWords = false;
-                }
+                $fullWords = $wordKey ? false : true;
                 if($done === false) {
                     foreach($fields as $field) {
                         $score = $score++;
-                        $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
+                        if(! isset($fieldValues[$field])) {
+                            $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
+                        }
                         if($fieldValues[$field] === $word) {
                             $done = true;
                             break;
@@ -331,9 +373,9 @@ class SearchApi
                 }
                 if($done === false) {
                     $score += 1000;
-                    $test = strpos($fieldValuesAll, $word);
-                    if($test !== false) {
-                        $score += ($test + 1) / strlen($word);
+                    $pos = strpos($fieldValuesAll, $word);
+                    if($pos !== false) {
+                        $score += (($pos + 1) / strlen($word)) * 1000;
                         $done = true;
                     }
                 }
@@ -347,8 +389,8 @@ class SearchApi
             $done = true;
         }
 
-        //the newer the item, the more likely
-        return $score + (1 / strototime($item->LastEdited));
+        //the older the item, the higher the scoare
+        return $score + (1 / strtotime($item->LastEdited));
     }
 
     protected function workOutExclusions()
@@ -388,10 +430,10 @@ class SearchApi
             DB::alteration_message('Base Class: ' . $this->baseClass);
         }
         if(! isset($this->cache['AllDataObjects'][$this->baseClass])) {
-            if(! isset($this->cache['AllDataObjects'])) {
-                $this->cache['AllDataObjects'] = [];
-            }
-            $this->cache['AllDataObjects'][$this->baseClass] = ClassInfo::subclassesFor($this->baseClass, true);
+            $this->cache['AllDataObjects'][$this->baseClass] = array_values(
+                ClassInfo::subclassesFor($this->baseClass, false)
+            );
+            $this->cache['AllDataObjects'][$this->baseClass] = array_unique($this->cache['AllDataObjects'][$this->baseClass]);
         }
 
         return $this->cache['AllDataObjects'][$this->baseClass];
@@ -399,43 +441,36 @@ class SearchApi
 
     protected function getAllValidFields(string $className): array
     {
-        $listofTextFieldClasses = $this->getListOfTextClasses();
         if(! isset($this->cache['AllValidFields'][$className])) {
-            if(! isset($this->cache['AllValidFields'])) {
-                $this->cache['AllValidFields'] = [];
-            }
-            $this->cache['AllValidFields'][$className] = Config::inst()->get($className, 'db');
-            if (is_array($this->cache['AllValidFields'][$className])) {
+            $array = [];
+            $fullList = Config::inst()->get($className, 'db');
+            if (is_array($fullList)) {
                 if ($this->isQuickSearch) {
-                    $this->cache['AllValidFields'][$className] = $this->getIndexedFields(
+                    $fullList = $this->getIndexedFields(
                         $className,
-                        $this->cache['AllValidFields'][$className]
+                        $fullList
                     );
                 }
-                foreach (array_keys($this->cache['AllValidFields'][$className]) as $name) {
-                    if (in_array($name, $listofTextFieldClasses , 1)) {
-                        $this->cache['AllValidFields'][$className][$name] = $name;
-                    } else {
-                        unset($this->cache['AllValidFields'][$className][$name]);
+                foreach ($fullList as $name => $type) {
+                    if ($this->isValidFieldType($className, $name, $type)) {
+                        $array[] = $name;
                     }
                 }
             }
+            $this->cache['AllValidFields'][$className] = $array;
         }
         return $this->cache['AllValidFields'][$className];
     }
 
-    protected function getIndexedFields(string $className, array $availableFields): array
+    protected function getIndexedFields(string $className, array $dbFields): array
     {
         if(! isset($this->cache['IndexedFields'][$className])) {
-            if(! isset($this->cache['IndexedFields'])) {
-                $this->cache['IndexedFields'] = [];
-            }
             $this->cache['IndexedFields'][$className] = [];
             $indexes = Config::inst()->get($className, 'indexes');
             if (is_array($indexes)) {
                 foreach ($indexes as $key => $field) {
-                    if (isset($availableFields[$key])) {
-                        $this->cache['IndexedFields'][$className][$key] = $key;
+                    if (isset($dbFields[$key])) {
+                        $this->cache['IndexedFields'][$className][$key] = $dbFields[$key];
                     } elseif (is_array($field)) {
                         foreach ($field as $test) {
                             if (is_array($test)) {
@@ -448,8 +483,8 @@ class SearchApi
                             $testArray = explode(',', $test);
                             foreach ($testArray as $testInner) {
                                 $testInner = trim($testInner);
-                                if (isset($availableFields[$testInner])) {
-                                    $this->cache['IndexedFields'][$className][$testInner] = $testInner;
+                                if (isset($dbFields[$testInner])) {
+                                    $this->cache['IndexedFields'][$className][$testInner] = $dbFields[$key];
                                 }
                             }
                         }
@@ -461,27 +496,17 @@ class SearchApi
         return $this->cache['IndexedFields'][$className];
     }
 
-    protected function defaultList() : array
+    protected function isValidFieldType(string $className, string $fieldName, string $type) : bool
     {
-        $threshold = strtotime('-3 days', DBDatetime::now()->getTimestamp());
-        $array = [];
-        foreach($this->getAllDataObjects() as $className) {
-            $array[$className] = $className::get()
-                ->filter('LastEdited:GreaterThan', date("Y-m-d H:i:s", $threshold))
-                ->sort('LastEdited', 'DESC')
-                ->limit()
-                ->column('ID');
-
+        if(! isset($this->cache['ValidFieldTypes'][$type])) {
+            $this->cache['ValidFieldTypes'][$type] = false;
+            $singleton = Injector::inst()->get($className);
+            $field = $singleton->dbObject($fieldName);
+            if($field instanceof DBString) {
+                $this->cache['ValidFieldTypes'][$type] = true;
+            }
         }
-        return $array;
-    }
-
-    protected function getListOfTextClasses() : array
-    {
-        if(! isset($this->cache['ListOfTextClasses'])) {
-            $this->cache['ListOfTextClasses'] = ClassInfo::subclassesFor(DBString::class);
-        }
-        return $this->cache['ListOfTextClasses'];
+        return $this->cache['ValidFieldTypes'][$type];
     }
 
 }

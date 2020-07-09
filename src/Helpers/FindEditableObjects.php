@@ -44,6 +44,7 @@ class FindEditableObjects
 
     /**
      * format is as follows:
+     * ```php
      *      [
      *          'valid_methods_edit' => [
      *              ClassNameA => true, // tested and does not have any available methods
@@ -71,7 +72,7 @@ class FindEditableObjects
      *                  'MethodC' => RelationClassNameD,
      *              ],
      *          ],
-     *          'validMethod' => [
+     *          'validMethods' => [
      *              'valid_methods_edit' => [
      *                  'A',
      *                  'B',
@@ -82,11 +83,22 @@ class FindEditableObjects
      *              ]
      *          ]
      *     ]
+     * ```
      * we use true rather than false to be able to use empty to work out if it has been tested before
      *
      * @var array
      */
-    protected $cache = [];
+    protected $cache = [
+        'valid_methods_edit',
+        'valid_methods_view',
+        'valid_methods_view_links',
+        'valid_methods_edit_links',
+        'rels',
+        'validMethods' => [
+            'valid_methods_edit' => [],
+            'valid_methods_view' => [],
+        ]
+    ];
 
     public function getFileCache()
     {
@@ -156,9 +168,6 @@ class FindEditableObjects
 
         $validMethods = $this->getValidMethods($type);
 
-        if (! isset($this->cache[$type])) {
-            $this->cache[$type] = [];
-        }
         $this->relationTypesCovered[$dataObject->ClassName] = true;
 
         // quick return
@@ -230,9 +239,6 @@ class FindEditableObjects
     protected function getRelations($dataObject): array
     {
         if (! isset($this->cache['rels'][$dataObject->ClassName])) {
-            if (! isset($this->cache['rels'])) {
-                $this->cache['rels'] = [];
-            }
             $this->cache['rels'][$dataObject->ClassName] = array_merge(
                 Config::inst()->get($dataObject->ClassName, 'belongs_to'),
                 Config::inst()->get($dataObject->ClassName, 'has_one'),
@@ -248,9 +254,6 @@ class FindEditableObjects
     protected function getValidMethods(string $type): array
     {
         if (! isset($this->cache['validMethods'][$type])) {
-            if (! isset($this->cache['validMethods'])) {
-                $this->cache['validMethods'] = [];
-            }
             $this->cache['validMethods'][$type] = $this->Config()->get($type);
         }
 

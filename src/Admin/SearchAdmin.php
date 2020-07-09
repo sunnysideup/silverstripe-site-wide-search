@@ -53,7 +53,7 @@ class SearchAdmin extends LeftAndMain
                 ->setDescription('This is faster but only searches a limited number of fields')
         );
         if (! $this->listHTML) {
-            $this->listHTML = '(none)';
+            $this->listHTML = $this->renderWith(self::class . '_Results');
         }
         $form->Fields()->push(
             (new HTMLReadonlyField('List', 'Search Results', DBField::create_field('HTMLText', $this->listHTML)))
@@ -62,16 +62,18 @@ class SearchAdmin extends LeftAndMain
             (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
         );
         $form->Actions()->push(
-            FormAction::create('save', 'Find')
+            FormAction::create('search', 'Find')
                 ->addExtraClass('btn-primary font-icon-save')
                 ->setUseButtonTag(true)
         );
         $form->addExtraClass('root-form cms-edit-form center fill-height');
+        $form->disableSecurityToken();
+        // $form->setFormMethod('get');
 
         return $form;
     }
 
-    public function save($data, $form)
+    public function search($data, $form)
     {
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
