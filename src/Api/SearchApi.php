@@ -39,7 +39,7 @@ class SearchApi
 
     protected $words = [];
 
-    private static $limit_of_count_per_data_object = 100;
+    private static $limit_of_count_per_data_object = 999;
 
     private static $default_exclude_classes = [
         Member::class,
@@ -101,11 +101,15 @@ class SearchApi
         return $this;
     }
 
-    public function getLinks(string $word = ''): ArrayList
+    public function __construct()
     {
-        Environment::increaseTimeLimitTo();
+        Environment::increaseTimeLimitTo(300);
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
+    }
+
+    public function getLinks(string $word = ''): ArrayList
+    {
         if ($this->debug) {
             $start = microtime(true);
         }
@@ -116,6 +120,12 @@ class SearchApi
             DB::alteration_message('seconds taken find results: ' . $elaps);
         }
 
+
+        return $this->turnMatchesIntoList($matches);
+    }
+
+    protected function turnMatchesIntoList(array $matches) : ArrayList
+    {
         // helper
         $finder = Injector::inst()->get(FindEditableObjects::class);
         $finder->initCache();
@@ -132,7 +142,10 @@ class SearchApi
                     DB::alteration_message('matches for : ' . $className . ': ' . count($ids));
                 }
                 $className = (string) $className;
-                $items = $className::get()->filter(['ID' => $ids])->limit($this->Config()->get('limit_of_count_per_data_object'));
+                $items = $className::get()
+                    ->filter(['ID' => $ids])
+                    ->limit($this->Config()
+                    ->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
                     if ($item->canView()) {
                         $link = $finder->getLink($item, $this->excludedClasses);
@@ -254,7 +267,7 @@ class SearchApi
         $fields = Config::inst()->get(get_class($singleton), 'db');
         if (is_array($fields)) {
             if ($this->isQuickSearch) {
-                $fields = $this->getIndexedField($singleton, $fields);
+                $fields = $this->getIndexedFields($singleton, $fields);
             }
             foreach (array_keys($fields) as $name) {
                 $dbField = $singleton->dbObject($name);
@@ -267,7 +280,7 @@ class SearchApi
         return $array;
     }
 
-    protected function getIndexedField($singleton, array $availableFields): array
+    protected function getIndexedFields($singleton, array $availableFields): array
     {
         $array = [];
         $indexes = Config::inst()->get(get_class($singleton), 'indexes');
