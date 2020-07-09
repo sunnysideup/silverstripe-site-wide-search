@@ -1,6 +1,8 @@
 <?php
 
-namespace Sunnysideup\SiteWideSearch\Api;
+namespace Sunnysideup\SiteWideSearch\Helpers;
+
+use Sunnysideup\SiteWideSearch\Helpers\Cache;
 
 use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Core\Config\Config;
@@ -14,7 +16,7 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\UnsavedRelationList;
 use Sunnysideup\CmsEditLinkField\Api\CMSEditLinkAPI;
 
-class FindEditableObjects implements Flushable
+class FindEditableObjects
 {
     use Extensible;
     use Configurable;
@@ -68,8 +70,6 @@ class FindEditableObjects implements Flushable
      */
     protected $cache = [];
 
-    protected $originatingClassName = '';
-
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
@@ -86,33 +86,24 @@ class FindEditableObjects implements Flushable
         'Link',
     ];
 
-    /**
-     * Flush all MemberCacheFlusher services
-     */
-    public static function flush()
-    {
-        Injector::inst()->get(FindEditableObjects::class)->getFileCache()->clear();
-    }
 
     public function getFileCache()
     {
-        return Injector::inst()->get(CacheInterface::class . '.siteWideSearch');
+        return Injector::inst()->get(Cache::class);
     }
 
-    public function initCache()
+    public function initCache() : self
     {
-        $fileCache = $this->getFileCache();
-        if ($fileCache->has(self::CACHE_NAME)) {
-            $this->cache = unserialize($fileCache->get(self::CACHE_NAME));
-        }
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME);
+
+        return $this;
     }
 
-    public function saveCache()
+    public function saveCache() : self
     {
-        if (count($this->cache)) {
-            $fileCache = $this->getFileCache();
-            $fileCache->set(self::CACHE_NAME, serialize($this->cache));
-        }
+        $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
+
+        return $this;
     }
 
     /**
@@ -140,14 +131,13 @@ class FindEditableObjects implements Flushable
      * @param  mixed $dataObject
      * @return string
      */
-    public function getLinkInner($dataObject, array $excludedClasses, string $type): string
+    protected function getLinkInner($dataObject, array $excludedClasses, string $type): string
     {
         $typeKey = $type . '_links';
         $objectKey = $dataObject->ClassName . '_' . $dataObject->ID;
         $result = $this->cache[$typeKey][$objectKey] ?? false;
         if ($result === false) {
             $this->excludedClasses = $excludedClasses;
-            $this->originatingClassName = $dataObject->ClassName;
             $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
             $this->cache[$typeKey][$objectKey] = $result;

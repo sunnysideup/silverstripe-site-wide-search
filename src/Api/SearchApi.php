@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\SiteWideSearch\Api;
 
+use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
+
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
