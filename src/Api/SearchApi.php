@@ -468,6 +468,8 @@ class SearchApi
         foreach($this->getAllDataObjects() as $className) {
             $array[$className] = $className::get()
                 ->filter('LastEdited:GreaterThan', date("Y-m-d H:i:s", $threshold))
+                ->sort('LastEdited', 'DESC')
+                ->limit()
                 ->column('ID');
 
         }
