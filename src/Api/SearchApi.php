@@ -332,7 +332,7 @@ class SearchApi
         }
         $finder->saveCache();
 
-        // $list->sort('SiteWideSearchSortValue', 'ASC');
+        $list = $list->sort('SiteWideSearchSortValue', 'ASC');
 
         return $list;
     }
@@ -349,30 +349,33 @@ class SearchApi
         if($fullWords) {
             $fieldValues = [];
             $fieldValuesAll = '';
+            foreach($fields as $field) {
+                $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
+            }
+            $fieldValuesAll = implode(' ', $fieldValues);
             $testWords = array_merge(
                 [$fullWords],
                 $this->words
             );
             $testWords = array_unique($testWords);
             foreach($testWords as $wordKey => $word) {
+
+                //match a exact field to full words / one word
                 $fullWords = $wordKey ? false : true;
                 if($done === false) {
-                    foreach($fields as $field) {
-                        $score = $score++;
-                        if(! isset($fieldValues[$field])) {
-                            $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
-                        }
-                        if($fieldValues[$field] === $word) {
+                    $count = 0;
+                    foreach($fieldValues as $fieldValue) {
+                        $count++;
+                        if($fieldValue === $word) {
+                            $score += $wordKey + $count;
                             $done = true;
                             break;
                         }
                     }
                 }
-                if(! $fieldValuesAll) {
-                    $fieldValuesAll = implode(' ', $fieldValues);
-                }
+
+                // the full string / any of the words are present?
                 if($done === false) {
-                    $score += 1000;
                     $pos = strpos($fieldValuesAll, $word);
                     if($pos !== false) {
                         $score += (($pos + 1) / strlen($word)) * 1000;
@@ -380,9 +383,23 @@ class SearchApi
                     }
                 }
 
-                //add if we are moving to individual words
-                if($fullWords) {
-                    $score += 1000;
+
+                // all individual words are present
+                if($done === false) {
+                    if($fullWords) {
+                        $score += 1000;
+                        $allMatch = true;
+                        foreach($this->words as $tmpWord) {
+                            $pos = strpos($fieldValuesAll, $word);
+                            if($pos === false) {
+                                $allMatch = false;
+                                break;
+                            }
+                        }
+                        if($allMatch) {
+                            $done = true;
+                        }
+                    }
                 }
             }
         } else {
@@ -390,7 +407,8 @@ class SearchApi
         }
 
         //the older the item, the higher the scoare
-        return $score + (1 / strtotime($item->LastEdited));
+        //1104622247 = 1 jan 2005
+        return $score +  (1 / (strtotime($item->LastEdited) - 1104537600));
     }
 
     protected function workOutExclusions()
