@@ -2,13 +2,9 @@
 
 namespace Sunnysideup\SiteWideSearch\Helpers;
 
-use Sunnysideup\SiteWideSearch\Helpers\Cache;
-
-use Psr\SimpleCache\CacheInterface;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
-use SilverStripe\Core\Flushable;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataList;
@@ -22,25 +18,11 @@ class FindEditableObjects
     use Configurable;
     use Injectable;
 
+    private const CACHE_NAME = 'FindEditableObjectsCache';
 
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
-
-    private static $max_relation_depth = 3;
-
-    private static $valid_methods_edit = [
-        'CMSEditLink',
-        'getCMSEditLink',
-    ];
-
-    private static $valid_methods_view = [
-        'getLink',
-        'Link',
-    ];
-
-
-    private const CACHE_NAME = 'FindEditableObjectsCache';
 
     /**
      * format is as follows:
@@ -97,7 +79,19 @@ class FindEditableObjects
         'validMethods' => [
             'valid_methods_edit' => [],
             'valid_methods_view' => [],
-        ]
+        ],
+    ];
+
+    private static $max_relation_depth = 3;
+
+    private static $valid_methods_edit = [
+        'CMSEditLink',
+        'getCMSEditLink',
+    ];
+
+    private static $valid_methods_view = [
+        'getLink',
+        'Link',
     ];
 
     public function getFileCache()
@@ -105,14 +99,14 @@ class FindEditableObjects
         return Injector::inst()->get(Cache::class);
     }
 
-    public function initCache() : self
+    public function initCache(): self
     {
         $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME);
 
         return $this;
     }
 
-    public function saveCache() : self
+    public function saveCache(): self
     {
         $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
 

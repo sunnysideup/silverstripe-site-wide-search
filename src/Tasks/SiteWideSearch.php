@@ -55,7 +55,7 @@ class SiteWideSearch extends BuildTask
             $item = $link->Object;
             $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
             if ($debug) {
-                $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: '.$link->SiteWideSearchSortValue;
+                $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: ' . $link->SiteWideSearchSortValue;
             }
             if ($link->HasCMSEditLink) {
                 $cmsEditLink = '<a href="' . $link->CMSEditLink . '">✎</a> ...';
@@ -63,9 +63,9 @@ class SiteWideSearch extends BuildTask
                 $cmsEditLink = 'x  ...';
             }
             if ($link->HasLink) {
-                DB::alteration_message($cmsEditLink.'<a href="' . $link->Link . '">' . $title . '</a> - ' , 'created');
+                DB::alteration_message($cmsEditLink . '<a href="' . $link->Link . '">' . $title . '</a> - ', 'created');
             } else {
-                DB::alteration_message($cmsEditLink.$title, 'obsolete');
+                DB::alteration_message($cmsEditLink . $title, 'obsolete');
             }
         }
     }

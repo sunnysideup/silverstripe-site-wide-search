@@ -40,9 +40,9 @@ class SearchAdmin extends LeftAndMain
     {
         $form = parent::getEditForm($id, $fields);
 
-        if ($form instanceof HTTPResponse) {
-            return $form;
-        }
+        // if ($form instanceof HTTPResponse) {
+        //     return $form;
+        // }
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
@@ -88,10 +88,7 @@ class SearchAdmin extends LeftAndMain
         $this->listHTML = $this->renderWith(self::class . '_Results');
         // Existing or new record?
 
-        $response = $this->getResponseNegotiator()->respond($request);
-
-
-        return $response;
+        return $this->getResponseNegotiator()->respond($request);
     }
 
     /**
@@ -110,7 +107,6 @@ class SearchAdmin extends LeftAndMain
 
     public function SearchResults(): ?ArrayList
     {
-
         $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         return Injector::inst()->get(SearchApi ::class)
