@@ -177,12 +177,12 @@ class SearchApi
     }
 
 
-    public function __construct()
-    {
-        Environment::increaseTimeLimitTo(300);
-        Environment::setMemoryLimitMax(-1);
-        Environment::increaseMemoryLimitTo(-1);
-    }
+    // public function __construct()
+    // {
+    //     Environment::increaseTimeLimitTo(300);
+    //     Environment::setMemoryLimitMax(-1);
+    //     Environment::increaseMemoryLimitTo(-1);
+    // }
 
     public function getLinks(string $word = ''): ArrayList
     {
