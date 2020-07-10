@@ -52,28 +52,31 @@ class SearchAdmin extends LeftAndMain
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
                 ->setDescription('This is faster but only searches a limited number of fields')
         );
-        if (! $this->listHTML) {
+        if (! $this->getRequest()->requestVar('Keywords')) {
+            $resultsTitle = 'Recently Edited';
             $this->listHTML = $this->renderWith(self::class . '_Results');
+        } else {
+            $resultsTitle = 'Search Results';
         }
         $form->Fields()->push(
-            (new HTMLReadonlyField('List', 'Search Results', DBField::create_field('HTMLText', $this->listHTML)))
+            (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
         );
         $form->Fields()->push(
             (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
         );
         $form->Actions()->push(
-            FormAction::create('search', 'Find')
-                ->addExtraClass('btn-primary font-icon-save')
+            FormAction::create('save', 'Find')
+                ->addExtraClass('btn-primary')
                 ->setUseButtonTag(true)
         );
         $form->addExtraClass('root-form cms-edit-form center fill-height');
-        $form->disableSecurityToken();
+        // $form->disableSecurityToken();
         // $form->setFormMethod('get');
 
         return $form;
     }
 
-    public function search($data, $form)
+    public function save($data, $form)
     {
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
@@ -87,8 +90,6 @@ class SearchAdmin extends LeftAndMain
 
         $response = $this->getResponseNegotiator()->respond($request);
 
-        $message = _t(__CLASS__ . '.SEARCH_COMPLETED', 'Searched Completed');
-        $response->addHeader('X-Status', rawurlencode($message));
 
         return $response;
     }
@@ -109,18 +110,13 @@ class SearchAdmin extends LeftAndMain
 
     public function SearchResults(): ?ArrayList
     {
-        if ($this->rawData) {
-            $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
-            $this->keywords = trim($this->rawData['Keywords'] ?? '');
-            if ($this->keywords) {
-                $words = explode(', ', $this->rawData['Keywords']);
-                return Injector::inst()->get(SearchApi ::class)
-                    ->setBaseClass(DataObject::class)
-                    ->setIsQuickSearch($this->isQuickSearch)
-                    ->setWords($words)
-                    ->getLinks();
-            }
-        }
-        return null;
+
+        $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
+        $this->keywords = trim($this->rawData['Keywords'] ?? '');
+        return Injector::inst()->get(SearchApi ::class)
+            ->setBaseClass(DataObject::class)
+            ->setIsQuickSearch($this->isQuickSearch)
+            ->setWordsAsString($this->keywords)
+            ->getLinks();
     }
 }
