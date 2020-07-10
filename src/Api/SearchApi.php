@@ -301,7 +301,7 @@ class SearchApi
                 }
                 $className = (string) $className;
                 $items = $className::get()
-                    ->filter(['ID' => $ids])
+                    ->filter(['ID' => $ids, 'ClassName' => $className])
                     ->limit($this->Config()->get('limit_of_count_per_data_object'));
                 foreach ($items as $item) {
                     if ($item->canView()) {
