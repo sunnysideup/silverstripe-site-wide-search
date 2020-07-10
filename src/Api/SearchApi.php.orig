@@ -17,11 +17,13 @@ use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBString;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
-use SilverStripe\Versioned\ChangeSet;
-use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
+<<<<<<< HEAD
 use Sunnysideup\SiteWideSearch\Helpers\Cache;
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
+=======
+use SilverStripe\Versioned\ChangeSet;
+>>>>>>> 5259a6a5bfed7e7b8ec4c3c89eee227ca67eabde
 
 class SearchApi
 {
@@ -203,33 +205,44 @@ class SearchApi
         $this->workOutExclusions();
         $this->workOutWords($word);
 
-        // if ($this->debug) {DB::alteration_message('Words searched for ' . implode(', ', $this->words));}
+        if ($this->debug) {
+            DB::alteration_message('Words searched for ' . implode(', ', $this->words));
+        }
         $array = [];
 
         if (count($this->words)) {
             foreach ($this->getAllDataObjects() as $className) {
-                // if ($this->debug) {DB::alteration_message(' ... Searching in ' . $className);}
+                if ($this->debug) {
+                    DB::alteration_message(' ... Searching in ' . $className);
+                }
                 if (! in_array($className, $this->excludedClasses, true)) {
                     $array[$className] = [];
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
                     foreach ($fields as $field) {
                         if (! in_array($field, $this->excludedFields, true)) {
-                            // if ($this->debug) {DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);}
+                            if ($this->debug) {
+                                DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
+                            }
                             $filterAny[$field . ':PartialMatch'] = $this->words;
                         }
                     }
                     if (count($filterAny)) {
-                        // if ($this->debug) {$start = microtime(true); DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));}
+                        if ($this->debug) {
+                            DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
+                        }
+                        // if ($this->debug) {$start = microtime(true);}
                         $array[$className] = $className::get()
                             ->filterAny($filterAny)
                             ->limit($this->Config()->get('limit_of_count_per_data_object'))
                             ->column('ID');
                         // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);}
                     }
-                    // if ($this->debug) {DB::alteration_message(' ... No fields in ' . $className);}
+                } else {
+                    if ($this->debug) {
+                        DB::alteration_message(' ... Skipping ' . $className);
+                    }
                 }
-                // if ($this->debug) {DB::alteration_message(' ... Skipping ' . $className);}
             }
         } else {
             $array = $this->getDefaultList();
@@ -243,9 +256,6 @@ class SearchApi
         $back = $this->config()->get('hours_back_for_recent') ?? 24;
         $limit = $this->Config()->get('limit_per_class_for_recent') ?? 5;
         $threshold = strtotime('-' . $back . ' hours', DBDatetime::now()->getTimestamp());
-        if (! $threshold) {
-            $threshold = time() - 86400;
-        }
         $array = [];
         $classNames = $this->getAllDataObjects();
         foreach ($classNames as $className) {
@@ -268,7 +278,9 @@ class SearchApi
 
         //return values
         $list = ArrayList::create();
-        // if ($this->debug) {DB::alteration_message('number of classes: ' . count($matches));}
+        if ($this->debug) {
+            DB::alteration_message('number of classes: ' . count($matches));
+        }
         foreach ($matches as $className => $ids) {
             if (count($ids)) {
                 // if ($this->debug) {$start = microtime(true);DB::alteration_message(' ... number of matches for : ' . $className . ': ' . count($ids));}
@@ -333,7 +345,7 @@ class SearchApi
                     foreach ($fieldValues as $fieldValue) {
                         $count++;
                         if ($fieldValue === $word) {
-                            $score += intval($wordKey) + $count;
+                            $score += $wordKey + $count;
                             $done = true;
                             break;
                         }
@@ -407,7 +419,9 @@ class SearchApi
 
     protected function getAllDataObjects(): array
     {
-        // if ($this->debug) {DB::alteration_message('Base Class: ' . $this->baseClass);}
+        if ($this->debug) {
+            DB::alteration_message('Base Class: ' . $this->baseClass);
+        }
         if (! isset($this->cache['AllDataObjects'][$this->baseClass])) {
             $this->cache['AllDataObjects'][$this->baseClass] = array_values(
                 ClassInfo::subclassesFor($this->baseClass, false)

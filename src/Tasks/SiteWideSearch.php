@@ -34,6 +34,9 @@ class SiteWideSearch extends BuildTask
         Environment::setTimeLimitMax(600);
         $debug = $request->getVar('debug') ? 'checked="checked"' : '';
         $word = Convert::raw2att($request->getVar('word'));
+        if (is_string($word)) {
+            $word = '';
+        }
         $html = '
 <form methd="get" action="">
     <h2>Enter Search Word(s):</h2>
