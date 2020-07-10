@@ -22,6 +22,7 @@ use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\Member;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\View\ArrayData;
+use SilverStripe\Versioned\ChangeSet;
 
 class SearchApi
 {
@@ -51,6 +52,8 @@ class SearchApi
     private static $default_exclude_classes = [
         MemberPassword::class,
         LoginAttempt::class,
+        ChangeSet::class,
+        ChangeSetItem::class,
     ];
 
     private static $default_exclude_fields = [
