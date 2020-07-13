@@ -17,6 +17,7 @@ use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBString;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
+use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
@@ -93,6 +94,7 @@ class SearchApi
         LoginAttempt::class,
         ChangeSet::class,
         ChangeSetItem::class,
+        RememberLoginHash::class,
     ];
 
     private static $default_exclude_fields = [
