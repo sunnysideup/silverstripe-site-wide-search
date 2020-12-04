@@ -238,7 +238,7 @@ class FindEditableObjects
                 Config::inst()->get($dataObject->ClassName, 'has_one'),
                 Config::inst()->get($dataObject->ClassName, 'has_many'),
                 Config::inst()->get($dataObject->ClassName, 'belongs_many_many'),
-                Config::inst()->get($dataObject->ClassName, 'many_many'),
+                Config::inst()->get($dataObject->ClassName, 'many_many')
             );
         }
 
