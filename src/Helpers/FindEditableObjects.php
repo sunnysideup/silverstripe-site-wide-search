@@ -240,6 +240,11 @@ class FindEditableObjects
                 Config::inst()->get($dataObject->ClassName, 'belongs_many_many'),
                 Config::inst()->get($dataObject->ClassName, 'many_many')
             );
+            foreach($this->cache['rels'][$dataObject->ClassName] as $key => $value) {
+                if (! in_array($value, $this->excludedClasses, true)) {
+                    unset($this->cache['rels'][$dataObject->ClassName][$key]);
+                }
+            }
         }
 
         return $this->cache['rels'][$dataObject->ClassName];
