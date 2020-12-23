@@ -124,7 +124,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         return [
             "CMS_ACCESS_SITE_WIDE_SEARCH" => array(
-                'name' => 'Search Website',
+                'name' => 'Access to Search Website in the CMS',
                 'category' => _t('SilverStripe\\Security\\Permission.CMS_ACCESS_CATEGORY', 'CMS Access'),
                 'help' => 'Allow users to search for documents (all documents will also be checked to see if they are allowed to be viewed)',
             )

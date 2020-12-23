@@ -2,9 +2,11 @@
 <ul class="search-results-for-site-wide-search">
     <% loop $SearchResults %>
     <li>
-        <a <% if $HasCMSEditLink %>href="$CMSEditLink" class="edit"<% else %>class="edit disabled"<% end_if %>>
-            ✎
-        </a>
+        <% if $HasCMSEditLink %>
+        <a href="$CMSEditLink" class="edit" style="font-family: monospace;">✎</a>
+        <% else %>
+        <a href="$CMSEditLink" class="edit disabled" style="font-family: monospace;">&nbsp;</a>
+        <% end_if %>
         —
         <a <% if $HasLink %>href="$Link"<% else %>class="disabled"<% end_if %> target="new">
             $Object.Title ($Object.i18n_singular_name)
