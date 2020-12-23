@@ -34,7 +34,9 @@ class SearchAdmin extends LeftAndMain
 
     private static $menu_priority = 99999;
 
-    private static $required_permission_codes = false;
+    private static $required_permission_codes = [
+        'CMS_SEARCH_ADMIN',
+    ];
 
     public function getEditForm($id = null, $fields = null)
     {
