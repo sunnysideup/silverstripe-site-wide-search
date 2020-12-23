@@ -14,9 +14,11 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBField;
 
+use SilverStripe\Security\PermissionProvider;
+
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
-class SearchAdmin extends LeftAndMain
+class SearchAdmin extends LeftAndMain implements PermissionProvider
 {
     protected $listHTML = '';
 
@@ -35,7 +37,7 @@ class SearchAdmin extends LeftAndMain
     private static $menu_priority = 99999;
 
     private static $required_permission_codes = [
-        'CMS_SEARCH_ADMIN',
+        'CMS_ACCESS_SITE_WIDE_SEARCH',
     ];
 
     public function getEditForm($id = null, $fields = null)
@@ -117,4 +119,16 @@ class SearchAdmin extends LeftAndMain
             ->setWordsAsString($this->keywords)
             ->getLinks();
     }
+
+    public function providePermissions()
+    {
+        return [
+            "CMS_ACCESS_SITE_WIDE_SEARCH" => array(
+                'name' => 'Search Website',
+                'category' => _t('SilverStripe\\Security\\Permission.CMS_ACCESS_CATEGORY', 'CMS Access'),
+                'help' => 'Allow users to search for documents (all documents will also be checked to see if they are allowed to be viewed)',
+            )
+        ];
+    }
+
 }
