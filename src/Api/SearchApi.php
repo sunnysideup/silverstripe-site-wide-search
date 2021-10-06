@@ -4,7 +4,6 @@ namespace Sunnysideup\SiteWideSearch\Api;
 
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Config;
-
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Environment;
 use SilverStripe\Core\Extensible;
@@ -75,12 +74,11 @@ class SearchApi
      *          ],
      *     ],
      * ```
-     * we use true rather than false to be able to use empty to work out if it has been tested before
+     * we use true rather than false to be able to use empty to work out if it has been tested before.
      *
      * @var array
      */
     protected $cache = [
-
     ];
 
     private static $limit_of_count_per_data_object = 999;
@@ -226,7 +224,8 @@ class SearchApi
                         $array[$className] = $className::get()
                             ->filterAny($filterAny)
                             ->limit($this->Config()->get('limit_of_count_per_data_object'))
-                            ->column('ID');
+                            ->column('ID')
+                        ;
                         // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);}
                     }
                     // if ($this->debug) {DB::alteration_message(' ... No fields in ' . $className);}
@@ -256,9 +255,11 @@ class SearchApi
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
                     ->sort('LastEdited', 'DESC')
                     ->limit($limit)
-                    ->column('ID');
+                    ->column('ID')
+                ;
             }
         }
+
         return $array;
     }
 
@@ -277,7 +278,8 @@ class SearchApi
                 $className = (string) $className;
                 $items = $className::get()
                     ->filter(['ID' => $ids, 'ClassName' => $className])
-                    ->limit($this->Config()->get('limit_of_count_per_data_object'));
+                    ->limit($this->Config()->get('limit_of_count_per_data_object'))
+                ;
                 foreach ($items as $item) {
                     if ($item->canView()) {
                         $link = $finder->getLink($item, $this->excludedClasses);
@@ -330,36 +332,38 @@ class SearchApi
             foreach ($testWords as $wordKey => $word) {
                 //match a exact field to full words / one word
                 $fullWords = $wordKey ? false : true;
-                if ($done === false) {
+                if (false === $done) {
                     $count = 0;
                     foreach ($fieldValues as $fieldValue) {
-                        $count++;
+                        ++$count;
                         if ($fieldValue === $word) {
                             $score += intval($wordKey) + $count;
                             $done = true;
+
                             break;
                         }
                     }
                 }
 
                 // the full string / any of the words are present?
-                if ($done === false) {
+                if (false === $done) {
                     $pos = strpos($fieldValuesAll, $word);
-                    if ($pos !== false) {
+                    if (false !== $pos) {
                         $score += (($pos + 1) / strlen($word)) * 1000;
                         $done = true;
                     }
                 }
 
                 // all individual words are present
-                if ($done === false) {
+                if (false === $done) {
                     if ($fullWords) {
                         $score += 1000;
                         $allMatch = true;
                         foreach ($this->words as $tmpWord) {
                             $pos = strpos($fieldValuesAll, $tmpWord);
-                            if ($pos === false) {
+                            if (false === $pos) {
                                 $allMatch = false;
+
                                 break;
                             }
                         }
@@ -440,6 +444,7 @@ class SearchApi
             }
             $this->cache['AllValidFields'][$className] = $array;
         }
+
         return $this->cache['AllValidFields'][$className];
     }
 
@@ -487,6 +492,7 @@ class SearchApi
                 $this->cache['ValidFieldTypes'][$type] = true;
             }
         }
+
         return $this->cache['ValidFieldTypes'][$type];
     }
 }

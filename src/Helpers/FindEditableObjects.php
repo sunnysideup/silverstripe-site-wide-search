@@ -66,7 +66,7 @@ class FindEditableObjects
      *          ]
      *     ]
      * ```
-     * we use true rather than false to be able to use empty to work out if it has been tested before
+     * we use true rather than false to be able to use empty to work out if it has been tested before.
      *
      * @var array
      */
@@ -114,9 +114,9 @@ class FindEditableObjects
     }
 
     /**
-     * returns an link to an object that can be edited in the CMS
-     * @param  mixed $dataObject
-     * @return string
+     * returns an link to an object that can be edited in the CMS.
+     *
+     * @param mixed $dataObject
      */
     public function getCMSEditLink($dataObject, array $excludedClasses): string
     {
@@ -124,9 +124,9 @@ class FindEditableObjects
     }
 
     /**
-     * returns an link to an object that can be viewed
-     * @param  mixed $dataObject
-     * @return string
+     * returns an link to an object that can be viewed.
+     *
+     * @param mixed $dataObject
      */
     public function getLink($dataObject, array $excludedClasses): string
     {
@@ -134,27 +134,27 @@ class FindEditableObjects
     }
 
     /**
-     * returns an link to an object that can be viewed
-     * @param  mixed $dataObject
-     * @return string
+     * returns an link to an object that can be viewed.
+     *
+     * @param mixed $dataObject
      */
     protected function getLinkInner($dataObject, array $excludedClasses, string $type): string
     {
         $typeKey = $type . '_links';
         $objectKey = $dataObject->ClassName . '_' . $dataObject->ID;
         $result = $this->cache[$typeKey][$objectKey] ?? false;
-        if ($result === false) {
+        if (false === $result) {
             $this->excludedClasses = $excludedClasses;
             $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
             $this->cache[$typeKey][$objectKey] = $result;
         }
+
         return $result;
     }
 
     protected function checkForValidMethods($dataObject, string $type, int $relationDepth = 0): string
     {
-
         //too many iterations!
         if ($relationDepth > $this->Config()->get('max_relation_depth')) {
             return '';
@@ -165,15 +165,16 @@ class FindEditableObjects
         $this->relationTypesCovered[$dataObject->ClassName] = true;
 
         // quick return
-        if (isset($this->cache[$type][$dataObject->ClassName]) && $this->cache[$type][$dataObject->ClassName] !== true) {
+        if (isset($this->cache[$type][$dataObject->ClassName]) && true !== $this->cache[$type][$dataObject->ClassName]) {
             $validMethod = $this->cache[$type][$dataObject->ClassName];
             if ($dataObject->hasMethod($validMethod)) {
                 return (string) $dataObject->{$validMethod}();
             }
+
             return (string) $dataObject->{$validMethod};
         }
         if (! in_array($dataObject->ClassName, $this->excludedClasses, true)) {
-            if (empty($this->cache[$type][$dataObject->ClassName]) || $this->cache[$type][$dataObject->ClassName] !== true) {
+            if (empty($this->cache[$type][$dataObject->ClassName]) || true !== $this->cache[$type][$dataObject->ClassName]) {
                 foreach ($validMethods as $validMethod) {
                     $outcome = null;
                     if ($dataObject->hasMethod($validMethod)) {
@@ -183,11 +184,12 @@ class FindEditableObjects
                     }
                     if ($outcome) {
                         $this->cache[$type][$dataObject->ClassName] = $validMethod;
+
                         return (string) $outcome;
                     }
                 }
             }
-            if ($type === 'valid_methods_edit') {
+            if ('valid_methods_edit' === $type) {
                 if (class_exists(CMSEditLinkAPI::class)) {
                     $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
                     if ($link) {
@@ -199,7 +201,7 @@ class FindEditableObjects
 
         // there is no match for this one, but we can search relations ...
         $this->cache[$type][$dataObject->ClassName] = true;
-        $relationDepth++;
+        ++$relationDepth;
         foreach ($this->getRelations($dataObject) as $relationName => $relType) {
             $outcome = null;
             //no support for link through relations yet!
@@ -240,7 +242,7 @@ class FindEditableObjects
                 Config::inst()->get($dataObject->ClassName, 'belongs_many_many'),
                 Config::inst()->get($dataObject->ClassName, 'many_many')
             );
-            foreach($this->cache['rels'][$dataObject->ClassName] as $key => $value) {
+            foreach ($this->cache['rels'][$dataObject->ClassName] as $key => $value) {
                 if (! in_array($value, $this->excludedClasses, true)) {
                     unset($this->cache['rels'][$dataObject->ClassName][$key]);
                 }

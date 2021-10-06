@@ -13,9 +13,7 @@ use SilverStripe\Forms\TextField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBField;
-
 use SilverStripe\Security\PermissionProvider;
-
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SearchAdmin extends LeftAndMain implements PermissionProvider
@@ -26,7 +24,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $isQuickSearch = false;
 
-    protected $rawData = null;
+    protected $rawData;
 
     private static $url_segment = 'find';
 
@@ -84,6 +82,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
+
             return $this->redirectBack();
         }
         $request = $this->getRequest();
@@ -101,11 +100,13 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
      * in the breadcrumbs.
      *
      * @param bool $unlinked
+     *
      * @return ArrayList
      */
     public function Breadcrumbs($unlinked = false)
     {
         $items = parent::Breadcrumbs($unlinked);
+
         return new ArrayList([$items[0]]);
     }
 
@@ -113,22 +114,23 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
+
         return Injector::inst()->get(SearchApi ::class)
             ->setBaseClass(DataObject::class)
             ->setIsQuickSearch($this->isQuickSearch)
             ->setWordsAsString($this->keywords)
-            ->getLinks();
+            ->getLinks()
+        ;
     }
 
     public function providePermissions()
     {
         return [
-            "CMS_ACCESS_SITE_WIDE_SEARCH" => array(
+            'CMS_ACCESS_SITE_WIDE_SEARCH' => [
                 'name' => 'Access to Search Website in the CMS',
                 'category' => _t('SilverStripe\\Security\\Permission.CMS_ACCESS_CATEGORY', 'CMS Access'),
                 'help' => 'Allow users to search for documents (all documents will also be checked to see if they are allowed to be viewed)',
-            )
+            ],
         ];
     }
-
 }

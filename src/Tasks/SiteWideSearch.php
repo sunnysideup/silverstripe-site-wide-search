@@ -6,7 +6,6 @@ use SilverStripe\Core\Convert;
 use SilverStripe\Core\Environment;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\ORM\DB;
-
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SiteWideSearch extends BuildTask

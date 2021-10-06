@@ -9,7 +9,7 @@ use SilverStripe\Core\Injector\Injector;
 class Cache implements Flushable
 {
     /**
-     * Flush all MemberCacheFlusher services
+     * Flush all MemberCacheFlusher services.
      */
     public static function flush()
     {
@@ -33,6 +33,7 @@ class Cache implements Flushable
         } else {
             $array = [];
         }
+
         return $array;
     }
 
