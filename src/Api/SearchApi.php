@@ -29,6 +29,9 @@ class SearchApi
     use Configurable;
     use Injectable;
 
+    /**
+     * @var string
+     */
     private const CACHE_NAME = 'SearchApi';
 
     protected $debug = false;
@@ -219,7 +222,8 @@ class SearchApi
                             $filterAny[$field . ':PartialMatch'] = $this->words;
                         }
                     }
-                    if (count($filterAny)) {
+
+                    if ([] !== $filterAny) {
                         // if ($this->debug) {$start = microtime(true); DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));}
                         $array[$className] = $className::get()
                             ->filterAny($filterAny)
@@ -228,8 +232,10 @@ class SearchApi
                         ;
                         // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);}
                     }
+
                     // if ($this->debug) {DB::alteration_message(' ... No fields in ' . $className);}
                 }
+
                 // if ($this->debug) {DB::alteration_message(' ... Skipping ' . $className);}
             }
         } else {
@@ -247,6 +253,7 @@ class SearchApi
         if (! $threshold) {
             $threshold = time() - 86400;
         }
+
         $array = [];
         $classNames = $this->getAllDataObjects();
         foreach ($classNames as $className) {
@@ -287,11 +294,12 @@ class SearchApi
                         if ($item->canEdit()) {
                             $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
                         }
+
                         $list->push(
                             ArrayData::create(
                                 [
-                                    'HasLink' => $link ? true : false,
-                                    'HasCMSEditLink' => $cmsEditLink ? true : false,
+                                    'HasLink' => (bool) $link,
+                                    'HasCMSEditLink' => (bool) $cmsEditLink,
                                     'Link' => $link,
                                     'CMSEditLink' => $cmsEditLink,
                                     'Object' => $item,
@@ -301,9 +309,11 @@ class SearchApi
                         );
                     }
                 }
+
                 // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('seconds taken to find objects in: ' . $className . ': ' . $elaps);}
             }
         }
+
         $finder->saveCache();
 
         return $list->sort('SiteWideSearchSortValue', 'ASC');
@@ -323,6 +333,7 @@ class SearchApi
             foreach ($fields as $field) {
                 $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
             }
+
             $fieldValuesAll = implode(' ', $fieldValues);
             $testWords = array_merge(
                 [$fullWords],
@@ -331,13 +342,13 @@ class SearchApi
             $testWords = array_unique($testWords);
             foreach ($testWords as $wordKey => $word) {
                 //match a exact field to full words / one word
-                $fullWords = $wordKey ? false : true;
+                $fullWords = ! (bool) $wordKey;
                 if (false === $done) {
                     $count = 0;
                     foreach ($fieldValues as $fieldValue) {
                         ++$count;
                         if ($fieldValue === $word) {
-                            $score += intval($wordKey) + $count;
+                            $score += (int) $wordKey + $count;
                             $done = true;
 
                             break;
@@ -367,6 +378,7 @@ class SearchApi
                                 break;
                             }
                         }
+
                         if ($allMatch) {
                             $done = true;
                         }
@@ -401,9 +413,11 @@ class SearchApi
         if ($word) {
             $this->words[] = $word;
         }
+
         if (! count($this->words)) {
             user_error('No word has been provided');
         }
+
         $this->words = array_unique($this->words);
         $this->words = array_filter($this->words);
         $this->words = array_map('strtolower', $this->words);
@@ -436,12 +450,14 @@ class SearchApi
                         $fullList
                     );
                 }
+
                 foreach ($fullList as $name => $type) {
                     if ($this->isValidFieldType($className, $name, $type)) {
                         $array[] = $name;
                     }
                 }
             }
+
             $this->cache['AllValidFields'][$className] = $array;
         }
 
@@ -466,6 +482,7 @@ class SearchApi
                                     continue;
                                 }
                             }
+
                             $testArray = explode(',', $test);
                             foreach ($testArray as $testInner) {
                                 $testInner = trim($testInner);

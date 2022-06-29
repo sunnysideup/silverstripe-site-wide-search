@@ -28,13 +28,9 @@ class Cache implements Flushable
     public function getCacheValues($cacheName): array
     {
         $cache = $this->getCache();
-        if ($cache->has($cacheName)) {
-            $array = unserialize($cache->get($cacheName));
-        } else {
-            $array = [];
-        }
+        $array = $cache->has($cacheName) ? unserialize($cache->get($cacheName)) : [];
 
-        return $array;
+        return $cache->has($cacheName) ? unserialize($cache->get($cacheName)) : [];
     }
 
     public function setCacheValues($cacheName, array $array): self

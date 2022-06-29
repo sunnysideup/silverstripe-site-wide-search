@@ -36,6 +36,7 @@ class SiteWideSearch extends BuildTask
         if (is_string($word)) {
             $word = '';
         }
+
         $html = '
 <form methd="get" action="">
     <h2>Enter Search Word(s):</h2>
@@ -50,6 +51,7 @@ class SiteWideSearch extends BuildTask
         if ($debug) {
             $api->setDebug(true);
         }
+
         $api->setWordsAsString((string) $request->getVar('word'));
         $links = $api->getLinks();
         echo '<h2>results</h2>';
@@ -59,11 +61,8 @@ class SiteWideSearch extends BuildTask
             if ($debug) {
                 $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: ' . $link->SiteWideSearchSortValue;
             }
-            if ($link->HasCMSEditLink) {
-                $cmsEditLink = '<a href="' . $link->CMSEditLink . '">✎</a> ...';
-            } else {
-                $cmsEditLink = 'x  ...';
-            }
+
+            $cmsEditLink = $link->HasCMSEditLink ? '<a href="' . $link->CMSEditLink . '">✎</a> ...' : 'x  ...';
             if ($link->HasLink) {
                 DB::alteration_message($cmsEditLink . '<a href="' . $link->Link . '">' . $title . '</a> - ', 'created');
             } else {

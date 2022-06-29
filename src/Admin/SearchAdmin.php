@@ -60,6 +60,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         } else {
             $resultsTitle = 'Search Results';
         }
+
         $form->Fields()->push(
             (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
         );
@@ -85,6 +86,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
             return $this->redirectBack();
         }
+
         $request = $this->getRequest();
 
         $this->rawData = $data;
@@ -112,7 +114,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     public function SearchResults(): ?ArrayList
     {
-        $this->isQuickSearch = empty($this->rawData['QuickSearch']) ? false : true;
+        $this->isQuickSearch = ! empty($this->rawData['QuickSearch']);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
 
         return Injector::inst()->get(SearchApi ::class)

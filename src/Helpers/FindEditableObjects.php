@@ -18,6 +18,9 @@ class FindEditableObjects
     use Configurable;
     use Injectable;
 
+    /**
+     * @var string
+     */
     private const CACHE_NAME = 'FindEditableObjectsCache';
 
     protected $relationTypesCovered = [];
@@ -141,7 +144,7 @@ class FindEditableObjects
     protected function getLinkInner($dataObject, array $excludedClasses, string $type): string
     {
         $typeKey = $type . '_links';
-        $objectKey = $dataObject->ClassName . '_' . $dataObject->ID;
+        $objectKey = $dataObject->ClassName . \_::class . $dataObject->ID;
         $result = $this->cache[$typeKey][$objectKey] ?? false;
         if (false === $result) {
             $this->excludedClasses = $excludedClasses;
@@ -173,6 +176,7 @@ class FindEditableObjects
 
             return (string) $dataObject->{$validMethod};
         }
+
         if (! in_array($dataObject->ClassName, $this->excludedClasses, true)) {
             if (empty($this->cache[$type][$dataObject->ClassName]) || true !== $this->cache[$type][$dataObject->ClassName]) {
                 foreach ($validMethods as $validMethod) {
@@ -182,6 +186,7 @@ class FindEditableObjects
                     } elseif (! empty($dataObject->{$validMethod})) {
                         $outcome = $dataObject->{$validMethod};
                     }
+
                     if ($outcome) {
                         $this->cache[$type][$dataObject->ClassName] = $validMethod;
 
@@ -189,6 +194,7 @@ class FindEditableObjects
                     }
                 }
             }
+
             if ('valid_methods_edit' === $type) {
                 if (class_exists(CMSEditLinkAPI::class)) {
                     $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
@@ -208,6 +214,7 @@ class FindEditableObjects
             if (is_array($relType)) {
                 continue;
             }
+
             if (! isset($this->relationTypesCovered[$relType])) {
                 $rels = $dataObject->{$relationName}();
                 if ($rels) {
@@ -224,6 +231,7 @@ class FindEditableObjects
                     }
                 }
             }
+
             if ($outcome) {
                 return $outcome;
             }
