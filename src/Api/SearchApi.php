@@ -234,7 +234,7 @@ class SearchApi
         return $count;
     }
 
-    protected function getMatches(string $word = ''): array
+    protected function getMatches(?string $word = ''): array
     {
         if ($this->debug) {$startOuter = microtime(true);}
 
@@ -309,8 +309,8 @@ class SearchApi
     protected function turnArrayIntoObjects(array $matches, ?int $limit = 0) : array
     {
         if(empty($this->objects)) {
-            if(! $limit) {
-                $limit = $this->Config()->get('limit_of_count_per_data_object');
+            if($limit === 0) {
+                $limit = (int) $this->Config()->get('limit_of_count_per_data_object');
             }
             $this->objects = [];
             if ($this->debug) {DB::alteration_message('number of classes: ' . count($matches));}
