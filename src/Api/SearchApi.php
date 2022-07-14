@@ -309,7 +309,7 @@ class SearchApi
     protected function turnArrayIntoObjects(array $matches, ?int $limit = 0) : array
     {
         if(empty($this->objects)) {
-            if($limit === 0) {
+            if(empty($limit)) {
                 $limit = (int) $this->Config()->get('limit_of_count_per_data_object');
             }
             $this->objects = [];
