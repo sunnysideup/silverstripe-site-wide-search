@@ -47,11 +47,11 @@ class SiteWideSearch extends BuildTask
 <form methd="post" action="">
     <h2>Enter Search Word(s):</h2>
     <h3>Find</h3>
-    <input name="word" value="' . Convert::raw2att($word) . '" style="with: 500px; padding: 5px;"  />
+    <input name="word" value="' . Convert::raw2att($word) . '" style="width: 500px; padding: 5px;"  />
     <h3>Replace (optional)</h3>
-    <input name="replace" value="' . Convert::raw2att($replace) . '" style="with: 500px; padding: 5px;" />
+    <input name="replace" value="' . Convert::raw2att($replace) . '" style="width: 500px; padding: 5px;" />
     <h3>Do it now ... (careful)</h3>
-    <input type="submit" value="search OR search and replace" style="with: 250px; padding: 5px;" />
+    <input type="submit" value="search OR search and replace" style="width: 250px; padding: 5px;" />
     <br />
     <br />debug: <input name="debug" type="checkbox" ' . $debug . '  />
 </form>
