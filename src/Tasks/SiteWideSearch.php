@@ -28,6 +28,11 @@ class SiteWideSearch extends BuildTask
     /**
      * {@inheritDoc}
      */
+    private static $segment = 'search-and-replace';
+
+    /**
+     * {@inheritDoc}
+     */
     public function run($request)
     {
         Environment::increaseTimeLimitTo(300);
