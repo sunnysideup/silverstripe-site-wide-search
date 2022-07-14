@@ -46,6 +46,10 @@ class SearchApi
 
     protected $words = [];
 
+    protected $replace = '';
+
+    private $objects = [];
+
     /**
      * format is as follows:
      * ```php
@@ -81,8 +85,7 @@ class SearchApi
      *
      * @var array
      */
-    protected $cache = [
-    ];
+    protected $cache = [];
 
     private static $limit_of_count_per_data_object = 999;
 
@@ -187,61 +190,94 @@ class SearchApi
     //     Environment::increaseMemoryLimitTo(-1);
     // }
 
-    public function getLinks(string $word = ''): ArrayList
+    public function getLinks(?string $word = ''): ArrayList
     {
         $this->initCache();
-        // if ($this->debug) {$start = microtime(true);}
+
         //always do first ...
         $matches = $this->getMatches($word);
-        // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('seconds taken find results: ' . $elaps);}
 
         $list = $this->turnMatchesIntoList($matches);
+
         $this->saveCache();
 
         return $list;
     }
 
+    public function doReplacement(string $word, string $replace): int
+    {
+        $this->initCache();
+        $count = 0;
+        // we should have these already.
+        foreach($this->objects as $item) {
+            if($item->canEdit()) {
+                $fields = $this->getAllValidFields($item->ClassName);
+                foreach ($fields as $field) {
+                    $new = str_replace($word, $replace, $item->$field);
+                    if($new !== $item->$field) {
+                        $count++;
+                        $item->$field = $new;
+                        $isPublished = false;
+                        if($item->hasMethod('isPublished')) {
+                            $isPublished = $item->isPublished();
+                        }
+                        $item->write();
+                        if($isPublished) {
+                            $item->publishRecursive();
+                        }
+                        if ($this->debug) { DB::alteration_message('<h2>Match:  '.$item->ClassName.$item->ID.'</h2>'.$new.'<hr />');}
+                    }
+                }
+            }
+        }
+
+        return $count;
+    }
+
     protected function getMatches(string $word = ''): array
     {
+        if ($this->debug) {$startOuter = microtime(true);}
+
         $this->workOutExclusions();
         $this->workOutWords($word);
 
-        // if ($this->debug) {DB::alteration_message('Words searched for ' . implode(', ', $this->words));}
+        if ($this->debug) {DB::alteration_message('Words searched for ' . implode(', ', $this->words));}
         $array = [];
 
         if (count($this->words)) {
             foreach ($this->getAllDataObjects() as $className) {
-                // if ($this->debug) {DB::alteration_message(' ... Searching in ' . $className);}
+                if ($this->debug) {DB::alteration_message(' ... Searching in ' . $className);}
                 if (! in_array($className, $this->excludedClasses, true)) {
                     $array[$className] = [];
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
                     foreach ($fields as $field) {
                         if (! in_array($field, $this->excludedFields, true)) {
-                            // if ($this->debug) {DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);}
+                            if ($this->debug) {DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);}
                             $filterAny[$field . ':PartialMatch'] = $this->words;
                         }
                     }
 
                     if ([] !== $filterAny) {
-                        // if ($this->debug) {$start = microtime(true); DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));}
+                        if ($this->debug) {$startInner = microtime(true); DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));}
                         $array[$className] = $className::get()
                             ->filterAny($filterAny)
                             ->limit($this->Config()->get('limit_of_count_per_data_object'))
                             ->column('ID')
                         ;
-                        // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);}
+                        if ($this->debug) {$elaps = microtime(true) - $startInner;DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);}
                     }
 
-                    // if ($this->debug) {DB::alteration_message(' ... No fields in ' . $className);}
+                    if ($this->debug) {DB::alteration_message(' ... No fields in ' . $className);}
                 }
 
-                // if ($this->debug) {DB::alteration_message(' ... Skipping ' . $className);}
+                if ($this->debug) {DB::alteration_message(' ... Skipping ' . $className);}
             }
         } else {
             $array = $this->getDefaultList();
         }
 
+        if ($this->debug) {$elaps = microtime(true) - $startOuter;DB::alteration_message('seconds taken find results: ' . $elaps);}
         return $array;
     }
 
@@ -270,48 +306,62 @@ class SearchApi
         return $array;
     }
 
+    protected function turnArrayIntoObjects(array $matches, ?int $limit = 0) : array
+    {
+        if(empty($this->objects)) {
+            if(! $limit) {
+                $limit = $this->Config()->get('limit_of_count_per_data_object');
+            }
+            $this->objects = [];
+            if ($this->debug) {DB::alteration_message('number of classes: ' . count($matches));}
+            foreach ($matches as $className => $ids) {
+                if ($this->debug) {$start = microtime(true);DB::alteration_message(' ... number of matches for : ' . $className . ': ' . count($ids));}
+                if (count($ids)) {
+                    $className = (string) $className;
+                    $items = $className::get()
+                        ->filter(['ID' => $ids, 'ClassName' => $className])
+                        ->limit($limit)
+                    ;
+                    foreach ($items as $item) {
+                        if ($item->canView()) {
+                            $this->objects[] = $item;
+                        }
+                    }
+                }
+                if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('seconds taken to find objects in: ' . $className . ': ' . $elaps);}
+            }
+        }
+
+        return $this->objects;
+    }
+
     protected function turnMatchesIntoList(array $matches): ArrayList
     {
         // helper
-        $finder = Injector::inst()->get(FindEditableObjects::class);
-        $finder->initCache();
-
         //return values
         $list = ArrayList::create();
-        // if ($this->debug) {DB::alteration_message('number of classes: ' . count($matches));}
-        foreach ($matches as $className => $ids) {
-            if (count($ids)) {
-                // if ($this->debug) {$start = microtime(true);DB::alteration_message(' ... number of matches for : ' . $className . ': ' . count($ids));}
-                $className = (string) $className;
-                $items = $className::get()
-                    ->filter(['ID' => $ids, 'ClassName' => $className])
-                    ->limit($this->Config()->get('limit_of_count_per_data_object'))
-                ;
-                foreach ($items as $item) {
-                    if ($item->canView()) {
-                        $link = $finder->getLink($item, $this->excludedClasses);
-                        $cmsEditLink = '';
-                        if ($item->canEdit()) {
-                            $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
-                        }
-
-                        $list->push(
-                            ArrayData::create(
-                                [
-                                    'HasLink' => (bool) $link,
-                                    'HasCMSEditLink' => (bool) $cmsEditLink,
-                                    'Link' => $link,
-                                    'CMSEditLink' => $cmsEditLink,
-                                    'Object' => $item,
-                                    'SiteWideSearchSortValue' => $this->getSortValue($item),
-                                ]
-                            )
-                        );
-                    }
-                }
-
-                // if ($this->debug) {$elaps = microtime(true) - $start;DB::alteration_message('seconds taken to find objects in: ' . $className . ': ' . $elaps);}
+        $finder = Injector::inst()->get(FindEditableObjects::class);
+        $finder->initCache();
+        $items = $this->turnArrayIntoObjects($matches);
+        foreach($items as $item) {
+            $link = $finder->getLink($item, $this->excludedClasses);
+            $cmsEditLink = '';
+            if ($item->canEdit()) {
+                $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
             }
+
+            $list->push(
+                ArrayData::create(
+                    [
+                        'HasLink' => (bool) $link,
+                        'HasCMSEditLink' => (bool) $cmsEditLink,
+                        'Link' => $link,
+                        'CMSEditLink' => $cmsEditLink,
+                        'Object' => $item,
+                        'SiteWideSearchSortValue' => $this->getSortValue($item),
+                    ]
+                )
+            );
         }
 
         $finder->saveCache();
@@ -427,7 +477,7 @@ class SearchApi
 
     protected function getAllDataObjects(): array
     {
-        // if ($this->debug) {DB::alteration_message('Base Class: ' . $this->baseClass);}
+        if ($this->debug) {DB::alteration_message('Base Class: ' . $this->baseClass);}
         if (! isset($this->cache['AllDataObjects'][$this->baseClass])) {
             $this->cache['AllDataObjects'][$this->baseClass] = array_values(
                 ClassInfo::subclassesFor($this->baseClass, false)

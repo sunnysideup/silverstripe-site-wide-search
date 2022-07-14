@@ -30,18 +30,28 @@ class SiteWideSearch extends BuildTask
      */
     public function run($request)
     {
-        Environment::setTimeLimitMax(600);
-        $debug = $request->getVar('debug') ? 'checked="checked"' : '';
-        $word = Convert::raw2att($request->getVar('word'));
-        if (is_string($word)) {
+        Environment::increaseTimeLimitTo(300);
+        Environment::setMemoryLimitMax(-1);
+        Environment::increaseMemoryLimitTo(-1);
+        $debug = $request->postVar('debug') ? 'checked="checked"' : '';
+        $word = Convert::raw2sql($request->requestVar('word'));
+        if (! is_string($word)) {
             $word = '';
+        }
+        $replace = Convert::raw2sql($request->requestVar('replace'));
+        if (! is_string($replace)) {
+            $replace = '';
         }
 
         $html = '
-<form methd="get" action="">
+<form methd="post" action="">
     <h2>Enter Search Word(s):</h2>
-    <input name="word" value="' . $word . '" />
-    <input type="submit" value="search" />
+    <h3>Find</h3>
+    <input name="word" value="' . Convert::raw2att($word) . '" />
+    <h3>Replace (optional)</h3>
+    <input name="replace" value="' . Convert::raw2att($replace) . '" />
+    <h3>Do it now ... (careful)</h3>
+    <input type="submit" value="search OR search and replace" />
     <br />
     <br />debug: <input name="debug" type="checkbox" ' . $debug . '  />
 </form>
@@ -52,7 +62,7 @@ class SiteWideSearch extends BuildTask
             $api->setDebug(true);
         }
 
-        $api->setWordsAsString((string) $request->getVar('word'));
+        $api->setWordsAsString($word);
         $links = $api->getLinks();
         echo '<h2>results</h2>';
         foreach ($links as $link) {
@@ -68,6 +78,9 @@ class SiteWideSearch extends BuildTask
             } else {
                 DB::alteration_message($cmsEditLink . $title, 'obsolete');
             }
+        }
+        if($replace) {
+            $api->doReplacement($word, $replace);
         }
     }
 }

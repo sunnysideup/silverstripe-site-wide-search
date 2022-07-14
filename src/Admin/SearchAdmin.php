@@ -21,6 +21,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     protected $listHTML = '';
 
     protected $keywords = '';
+    protected $replace = '';
 
     protected $isQuickSearch = false;
 
@@ -48,6 +49,10 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
+                ->setAttribute('placeholder', 'e.g. insurance OR rental agreement')
+        );
+        $form->Fields()->push(
+            (new TextField('ReplaceWith', 'Replace', $this->replace ?? ''))
                 ->setAttribute('placeholder', 'e.g. insurance OR rental agreement')
         );
         $form->Fields()->push(
@@ -116,13 +121,23 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         $this->isQuickSearch = ! empty($this->rawData['QuickSearch']);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
+        $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
+        if($this->replace) {
+            return Injector::inst()->get(SearchApi ::class)
+                ->setBaseClass(DataObject::class)
+                ->setIsQuickSearch(false)
+                ->setWordsAsString($this->keywords)
+                ->doReplacement($this->keywords, $this->replace)
+            ;
 
-        return Injector::inst()->get(SearchApi ::class)
-            ->setBaseClass(DataObject::class)
-            ->setIsQuickSearch($this->isQuickSearch)
-            ->setWordsAsString($this->keywords)
-            ->getLinks()
-        ;
+        } else {
+            return Injector::inst()->get(SearchApi ::class)
+                ->setBaseClass(DataObject::class)
+                ->setIsQuickSearch($this->isQuickSearch)
+                ->setWordsAsString($this->keywords)
+                ->getLinks()
+            ;
+        }
     }
 
     public function providePermissions()

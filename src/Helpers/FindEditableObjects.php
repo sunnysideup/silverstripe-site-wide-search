@@ -144,13 +144,13 @@ class FindEditableObjects
     protected function getLinkInner($dataObject, array $excludedClasses, string $type): string
     {
         $typeKey = $type . '_links';
-        $objectKey = $dataObject->ClassName . \_::class . $dataObject->ID;
-        $result = $this->cache[$typeKey][$objectKey] ?? false;
+        $className = $dataObject->ClassName;
+        $result = $this->cache[$typeKey][$dataObject->ClassName] ?? false;
         if (false === $result) {
             $this->excludedClasses = $excludedClasses;
             $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
-            $this->cache[$typeKey][$objectKey] = $result;
+            $this->cache[$typeKey][$dataObject->ClassName] = $result;
         }
 
         return $result;
