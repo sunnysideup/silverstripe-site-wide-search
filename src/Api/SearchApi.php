@@ -38,6 +38,8 @@ class SearchApi
 
     protected $isQuickSearch = false;
 
+    protected $searchWholePhrase = false;
+
     protected $baseClass = DataObject::class;
 
     protected $excludedClasses = [];
@@ -118,6 +120,13 @@ class SearchApi
     public function setIsQuickSearch(bool $b): SearchApi
     {
         $this->isQuickSearch = $b;
+
+        return $this;
+    }
+
+    public function setSearchWholePhrase(bool $b): SearchApi
+    {
+        $this->searchWholePhrase = $b;
 
         return $this;
     }
@@ -240,7 +249,6 @@ class SearchApi
 
         $this->workOutExclusions();
         $this->workOutWords($word);
-
         if ($this->debug) {DB::alteration_message('Words searched for ' . implode(', ', $this->words));}
         $array = [];
 
@@ -345,16 +353,12 @@ class SearchApi
         $items = $this->turnArrayIntoObjects($matches);
         foreach($items as $item) {
             $link = $finder->getLink($item, $this->excludedClasses);
-            $cmsEditLink = '';
-            if ($item->canEdit()) {
-                $cmsEditLink = $finder->getCMSEditLink($item, $this->excludedClasses);
-            }
-
+            $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item, $this->excludedClasses) : '';
             $list->push(
                 ArrayData::create(
                     [
-                        'HasLink' => (bool) $link,
-                        'HasCMSEditLink' => (bool) $cmsEditLink,
+                        'HasLink' => (bool) $link ? true : false,
+                        'HasCMSEditLink' => (bool) $cmsEditLink ? true : false,
                         'Link' => $link,
                         'CMSEditLink' => $cmsEditLink,
                         'Object' => $item,
@@ -460,6 +464,9 @@ class SearchApi
 
     protected function workOutWords(string $word = ''): array
     {
+        if($this->searchWholePhrase) {
+            $this->words = [implode(' ', $this->words)];
+        }
         if ($word) {
             $this->words[] = $word;
         }
@@ -471,7 +478,6 @@ class SearchApi
         $this->words = array_unique($this->words);
         $this->words = array_filter($this->words);
         $this->words = array_map('strtolower', $this->words);
-
         return $this->words;
     }
 

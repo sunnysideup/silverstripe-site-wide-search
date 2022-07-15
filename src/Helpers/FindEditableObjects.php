@@ -145,12 +145,13 @@ class FindEditableObjects
     {
         $typeKey = $type . '_links';
         $className = $dataObject->ClassName;
-        $result = $this->cache[$typeKey][$dataObject->ClassName] ?? false;
+        $key = $dataObject->ClassName . $dataObject->ID;
+        $result = $this->cache[$typeKey][$key] ?? false;
         if (false === $result) {
             $this->excludedClasses = $excludedClasses;
             $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
-            $this->cache[$typeKey][$dataObject->ClassName] = $result;
+            $this->cache[$typeKey][$key] = $result;
         }
 
         return $result;

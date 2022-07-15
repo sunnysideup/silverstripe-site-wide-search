@@ -49,15 +49,19 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         // $form->Fields()->removeByName('LastVisited');
         $form->Fields()->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
-                ->setAttribute('placeholder', 'e.g. insurance OR rental agreement')
+                ->setAttribute('placeholder', 'e.g. agreement')
         );
         $form->Fields()->push(
-            (new TextField('ReplaceWith', 'Replace', $this->replace ?? ''))
-                ->setAttribute('placeholder', 'e.g. insurance OR rental agreement')
+            (new TextField('ReplaceWith', 'Replace (optional)', $this->replace ?? ''))
+                ->setAttribute('placeholder', 'e.g. contract - leave blank to ignore')
         );
         $form->Fields()->push(
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
                 ->setDescription('This is faster but only searches a limited number of fields')
+        );
+        $form->Fields()->push(
+            (new CheckboxField('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
+                ->setDescription('If ticked, any item will be included that includes the whole phrase (e.g. New Zealand, rather than New OR Zealand)')
         );
         if (! $this->getRequest()->requestVar('Keywords')) {
             $resultsTitle = 'Recently Edited';
@@ -120,6 +124,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     public function SearchResults(): ?ArrayList
     {
         $this->isQuickSearch = ! empty($this->rawData['QuickSearch']);
+        $this->searchWholePhrase = ! empty($this->rawData['SearchWholePhrase']);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
         if($this->replace) {
@@ -134,6 +139,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             return Injector::inst()->get(SearchApi ::class)
                 ->setBaseClass(DataObject::class)
                 ->setIsQuickSearch($this->isQuickSearch)
+                ->setSearchWholePhrase($this->searchWholePhrase)
                 ->setWordsAsString($this->keywords)
                 ->getLinks()
             ;

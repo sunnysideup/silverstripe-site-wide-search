@@ -2,7 +2,7 @@
 
 Use one of these two links to see if it works for you:
 
- - `dev/tasks/Sunnysideup-SiteWideSearch-Tasks-SiteWideSearch`
+ - `dev/tasks/search-and-replace`
  - `admin/find/`
 
 If it does then you can build your own presentation layer using the API:
