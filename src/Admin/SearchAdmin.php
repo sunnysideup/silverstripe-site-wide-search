@@ -25,6 +25,8 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $isQuickSearch = false;
 
+    protected $searchWholePhrase = false;
+
     protected $rawData;
 
     private static $url_segment = 'find';
