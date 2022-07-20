@@ -43,6 +43,7 @@ class SiteWideSearch extends BuildTask
         if (! is_string($word)) {
             $word = '';
         }
+
         $replace = Convert::raw2sql($request->requestVar('replace'));
         if (! is_string($replace)) {
             $replace = '';
@@ -84,7 +85,8 @@ class SiteWideSearch extends BuildTask
                 DB::alteration_message($cmsEditLink . $title, 'obsolete');
             }
         }
-        if($replace) {
+
+        if ($replace) {
             $api->doReplacement($word, $replace);
             $api->setDebug(true);
         }

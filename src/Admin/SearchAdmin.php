@@ -21,6 +21,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     protected $listHTML = '';
 
     protected $keywords = '';
+
     protected $replace = '';
 
     protected $isQuickSearch = false;
@@ -129,23 +130,22 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         $this->searchWholePhrase = ! empty($this->rawData['SearchWholePhrase']);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
-        if($this->replace) {
+        if ($this->replace) {
             return Injector::inst()->get(SearchApi ::class)
                 ->setBaseClass(DataObject::class)
                 ->setIsQuickSearch(false)
                 ->setWordsAsString($this->keywords)
                 ->doReplacement($this->keywords, $this->replace)
             ;
-
-        } else {
-            return Injector::inst()->get(SearchApi ::class)
-                ->setBaseClass(DataObject::class)
-                ->setIsQuickSearch($this->isQuickSearch)
-                ->setSearchWholePhrase($this->searchWholePhrase)
-                ->setWordsAsString($this->keywords)
-                ->getLinks()
-            ;
         }
+
+        return Injector::inst()->get(SearchApi ::class)
+            ->setBaseClass(DataObject::class)
+            ->setIsQuickSearch($this->isQuickSearch)
+            ->setSearchWholePhrase($this->searchWholePhrase)
+            ->setWordsAsString($this->keywords)
+            ->getLinks()
+            ;
     }
 
     public function providePermissions()
