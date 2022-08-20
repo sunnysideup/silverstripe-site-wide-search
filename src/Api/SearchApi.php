@@ -249,10 +249,11 @@ class SearchApi
 
     protected function getMatches(?string $word = ''): array
     {
+        $startInner = 0;
+        $startOuter = 0;
         if ($this->debug) {
             $startOuter = microtime(true);
         }
-
         $this->workOutExclusions();
         $this->workOutWords($word);
         if ($this->debug) {
@@ -346,6 +347,7 @@ class SearchApi
 
     protected function turnArrayIntoObjects(array $matches, ?int $limit = 0): array
     {
+        $start = 0;
         if (empty($this->objects)) {
             if (empty($limit)) {
                 $limit = (int) $this->Config()->get('limit_of_count_per_data_object');
