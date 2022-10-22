@@ -20,6 +20,8 @@ use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
+
+use SilverStripe\SessionManager\Models\LoginSession;
 use Sunnysideup\SiteWideSearch\Helpers\Cache;
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
 
@@ -101,6 +103,7 @@ class SearchApi
         ChangeSet::class,
         ChangeSetItem::class,
         RememberLoginHash::class,
+        LoginSession::class,
     ];
 
     private static $default_exclude_fields = [
