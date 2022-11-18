@@ -5,6 +5,8 @@ namespace Sunnysideup\SiteWideSearch\Admin;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\Injector\Injector;
+
+use SilverStripe\Core\Environment;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HTMLReadonlyField;
@@ -23,6 +25,8 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     protected $keywords = '';
 
     protected $replace = '';
+
+    protected $applyReplace = false;
 
     protected $isQuickSearch = false;
 
@@ -55,8 +59,12 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 ->setAttribute('placeholder', 'e.g. agreement')
         );
         $form->Fields()->push(
-            (new TextField('ReplaceWith', 'Replace (optional)', $this->replace ?? ''))
-                ->setAttribute('placeholder', 'e.g. contract - leave blank to ignore')
+            (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
+                ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below')
+        );
+        $form->Fields()->push(
+            (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
+                ->setDescription('This is faster but only searches a limited number of fields')
         );
         $form->Fields()->push(
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
@@ -126,17 +134,24 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     public function SearchResults(): ?ArrayList
     {
+        Environment::increaseTimeLimitTo(300);
+        Environment::setMemoryLimitMax(-1);
+        Environment::increaseMemoryLimitTo(-1);
         $this->isQuickSearch = ! empty($this->rawData['QuickSearch']);
         $this->searchWholePhrase = ! empty($this->rawData['SearchWholePhrase']);
+        $this->applyReplace = ! empty($this->rawData['ApplyReplace']);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
-        if ($this->replace) {
-            return Injector::inst()->get(SearchApi ::class)
+        if ($this->applyReplace) {
+            Injector::inst()->get(SearchApi ::class)
                 ->setBaseClass(DataObject::class)
-                ->setIsQuickSearch(false)
+                ->setIsQuickSearch($this->isQuickSearch)
+                ->setSearchWholePhrase(true)
                 ->setWordsAsString($this->keywords)
+                ->buildLinks()
                 ->doReplacement($this->keywords, $this->replace)
             ;
+            $this->applyReplace = false;
         }
 
         return Injector::inst()->get(SearchApi ::class)
@@ -145,7 +160,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             ->setSearchWholePhrase($this->searchWholePhrase)
             ->setWordsAsString($this->keywords)
             ->getLinks()
-            ;
+        ;
     }
 
     public function providePermissions()

@@ -202,7 +202,20 @@ class SearchApi
     //     Environment::increaseMemoryLimitTo(-1);
     // }
 
+    public function buildCache(?string $word = ''): SearchApi
+    {
+        $this->getLinksInner($word);
+
+        return $this;
+
+    }
+
     public function getLinks(?string $word = ''): ArrayList
+    {
+        return $this->getLinksInner($word);
+    }
+
+    protected function getLinksInner(?string $word = ''): ArrayList
     {
         $this->initCache();
 
@@ -214,6 +227,7 @@ class SearchApi
         $this->saveCache();
 
         return $list;
+
     }
 
     public function doReplacement(string $word, string $replace): int
