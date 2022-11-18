@@ -18,6 +18,7 @@ use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Versioned\ChangeSet;
+use SilverStripe\Versioned\Versioned;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
 
@@ -243,15 +244,16 @@ class SearchApi
                     if ($new !== $item->{$field}) {
                         ++$count;
                         $item->{$field} = $new;
-                        $isPublished = false;
-                        if ($item->hasMethod('isPublished')) {
-                            $isPublished = $item->isPublished();
+                        if ($item->hasExtension(Versioned::class)) {
+                            $canBePublished = $item->isModifiedOnDraft();
+                            $item->writeToStage(Versioned::DRAFT);
+                            if ($canBePublished) {
+                                $item->publishSingle();
+                            }
+                        } else {
+                            $item->write();
                         }
 
-                        $item->write();
-                        if ($isPublished) {
-                            $item->publishSingle();
-                        }
 
                         if ($this->debug) {
                             DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
