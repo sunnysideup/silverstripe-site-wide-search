@@ -64,7 +64,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         );
         $form->Fields()->push(
             (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
-                ->setDescription('This is faster but only searches a limited number of fields')
+                ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.')
         );
         $form->Fields()->push(
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
@@ -148,7 +148,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 ->setIsQuickSearch($this->isQuickSearch)
                 ->setSearchWholePhrase(true)
                 ->setWordsAsString($this->keywords)
-                ->buildLinks()
+                ->buildCache()
                 ->doReplacement($this->keywords, $this->replace)
             ;
             $this->applyReplace = false;

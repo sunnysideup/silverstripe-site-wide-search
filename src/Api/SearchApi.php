@@ -250,7 +250,7 @@ class SearchApi
 
                         $item->write();
                         if ($isPublished) {
-                            $item->publishRecursive();
+                            $item->publishSingle();
                         }
 
                         if ($this->debug) {
