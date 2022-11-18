@@ -245,7 +245,7 @@ class SearchApi
                     if ($new !== $item->{$field}) {
                         ++$count;
                         $item->{$field} = $new;
-                        $this->writeAndPublish($item);
+                        $this->writeAndPublishIfAppropriate($item);
 
                         if ($this->debug) {
                             DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
@@ -258,7 +258,7 @@ class SearchApi
         return $count;
     }
 
-    protected function writeAndPublish($item)
+    protected function writeAndPublishIfAppropriate($item)
     {
         if ($item->hasExtension(Versioned::class)) {
             $myStage = Versioned::get_stage();
