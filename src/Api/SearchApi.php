@@ -261,13 +261,15 @@ class SearchApi
     protected function writeAndPublish($item)
     {
         if ($item->hasExtension(Versioned::class)) {
-            ReadingMode::validateStage(Versioned::DRAFT);
+            $myStage = Versioned::get_stage();
+            Versioned::set_stage(Versioned::DRAFT);
             // is it on live and is live the same as draft
             $canBePublished = $item->isPublished() && ! $item->isModifiedOnDraft();
             $item->writeToStage(Versioned::DRAFT);
             if ($canBePublished) {
                 $item->publishSingle();
             }
+            Versioned::set_stage($myStage);
         } else {
             $item->write();
         }
