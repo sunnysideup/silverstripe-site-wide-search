@@ -19,6 +19,7 @@ use SilverStripe\Security\MemberPassword;
 use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\Versioned;
+use SilverStripe\Versioned\ReadingMode;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
 
@@ -244,16 +245,7 @@ class SearchApi
                     if ($new !== $item->{$field}) {
                         ++$count;
                         $item->{$field} = $new;
-                        if ($item->hasExtension(Versioned::class)) {
-                            $canBePublished = $item->isModifiedOnDraft();
-                            $item->writeToStage(Versioned::DRAFT);
-                            if ($canBePublished) {
-                                $item->publishSingle();
-                            }
-                        } else {
-                            $item->write();
-                        }
-
+                        $this->writeAndPublish($item);
 
                         if ($this->debug) {
                             DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
@@ -264,6 +256,22 @@ class SearchApi
         }
 
         return $count;
+    }
+
+    protected function writeAndPublish($item)
+    {
+        if ($item->hasExtension(Versioned::class)) {
+            ReadingMode::validateStage(Versioned::DRAFT);
+            // is it on live and is live the same as draft
+            $canBePublished = $item->isPublished() && ! $item->isModifiedOnDraft();
+            $item->writeToStage(Versioned::DRAFT);
+            if ($canBePublished) {
+                $item->publishSingle();
+            }
+        } else {
+            $item->write();
+        }
+
     }
 
     protected function getMatches(?string $word = ''): array
