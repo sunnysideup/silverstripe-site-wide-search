@@ -459,7 +459,7 @@ class SearchApi
             $fieldValues = [];
             $fieldValuesAll = '';
             foreach ($fields as $field) {
-                $fieldValues[$field] = strtolower(strip_tags($item->{$field}));
+                $fieldValues[$field] = strtolower(strip_tags((string) $item->{$field}));
             }
 
             $fieldValuesAll = implode(' ', $fieldValues);
