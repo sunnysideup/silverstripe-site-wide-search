@@ -8,6 +8,7 @@ use SilverStripe\Core\Injector\Injector;
 
 use SilverStripe\Core\Environment;
 use SilverStripe\Forms\CheckboxField;
+use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HTMLReadonlyField;
 use SilverStripe\Forms\LiteralField;
@@ -99,7 +100,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         return $form;
     }
 
-    public function save($data, $form)
+    public function save(array $data, Form $form): HTTPResponse
     {
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
@@ -143,7 +144,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
         if ($this->applyReplace) {
-            Injector::inst()->get(SearchApi ::class)
+            Injector::inst()->get(SearchApi::class)
                 ->setBaseClass(DataObject::class)
                 ->setIsQuickSearch($this->isQuickSearch)
                 ->setSearchWholePhrase(true)
@@ -154,7 +155,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             $this->applyReplace = false;
         }
 
-        return Injector::inst()->get(SearchApi ::class)
+        return Injector::inst()->get(SearchApi::class)
             ->setBaseClass(DataObject::class)
             ->setIsQuickSearch($this->isQuickSearch)
             ->setSearchWholePhrase($this->searchWholePhrase)
