@@ -444,7 +444,7 @@ class SearchApi
 
         $finder->saveCache();
 
-        return $list->sort('SiteWideSearchSortValue', 'ASC');
+        return $list->sort(['SiteWideSearchSortValue' => 'ASC']);
     }
 
     protected function getSortValue($item)
