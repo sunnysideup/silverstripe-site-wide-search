@@ -89,7 +89,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
         );
         $form->Actions()->push(
-            FormAction::create('save', 'Find')
+            FormAction::create('search', 'Find')
                 ->addExtraClass('btn-primary')
                 ->setUseButtonTag(true)
         );
@@ -100,7 +100,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         return $form;
     }
 
-    public function save(array $data, Form $form): HTTPResponse
+    public function search(array $data, Form $form): HTTPResponse
     {
         if (empty($data['Keywords'])) {
             $form->sessionMessage('Please enter one or more keywords', 'bad');
