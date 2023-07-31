@@ -364,7 +364,7 @@ class SearchApi
             if (! in_array($className, $this->excludedClasses, true)) {
                 $array[$className] = $className::get()
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
-                    ->sort('LastEdited', 'DESC')
+                    ->sort(['LastEdited' => 'DESC'])
                     ->limit($limit)
                     ->column('ID')
                 ;
