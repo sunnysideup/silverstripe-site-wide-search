@@ -26,6 +26,7 @@ class FindEditableObjects
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
+    protected $includedClasses = [];
 
     /**
      * format is as follows:
@@ -109,6 +110,20 @@ class FindEditableObjects
         return $this;
     }
 
+    public function setExcludedClasses(array $excludedClasses): self
+    {
+        $this->excludedClasses = $excludedClasses;
+
+        return $this;
+    }
+
+    public function setIncludedClasses(array $includedClasses): self
+    {
+        $this->includedClasses = $includedClasses;
+
+        return $this;
+    }
+
     public function saveCache(): self
     {
         $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
@@ -121,9 +136,9 @@ class FindEditableObjects
      *
      * @param mixed $dataObject
      */
-    public function getCMSEditLink($dataObject, array $excludedClasses): string
+    public function getCMSEditLink($dataObject): string
     {
-        return $this->getLinkInner($dataObject, $excludedClasses, 'valid_methods_edit');
+        return $this->getLinkInner($dataObject, 'valid_methods_edit');
     }
 
     /**
@@ -131,9 +146,9 @@ class FindEditableObjects
      *
      * @param mixed $dataObject
      */
-    public function getLink($dataObject, array $excludedClasses): string
+    public function getLink($dataObject): string
     {
-        return $this->getLinkInner($dataObject, $excludedClasses, 'valid_methods_view');
+        return $this->getLinkInner($dataObject, 'valid_methods_view');
     }
 
     /**
@@ -141,14 +156,12 @@ class FindEditableObjects
      *
      * @param mixed $dataObject
      */
-    protected function getLinkInner($dataObject, array $excludedClasses, string $type): string
+    protected function getLinkInner($dataObject, string $type): string
     {
         $typeKey = $type . '_links';
-        $className = $dataObject->ClassName;
         $key = $dataObject->ClassName . $dataObject->ID;
         $result = $this->cache[$typeKey][$key] ?? false;
         if (false === $result) {
-            $this->excludedClasses = $excludedClasses;
             $this->relationTypesCovered = [];
             $result = $this->checkForValidMethods($dataObject, $type);
             $this->cache[$typeKey][$key] = $result;
@@ -178,13 +191,13 @@ class FindEditableObjects
             return (string) $dataObject->{$validMethod};
         }
 
-        if (! in_array($dataObject->ClassName, $this->excludedClasses, true)) {
+        if ($this->classCanBeIncluded($dataObject->ClassName)) {
             if (empty($this->cache[$type][$dataObject->ClassName]) || true !== $this->cache[$type][$dataObject->ClassName]) {
                 foreach ($validMethods as $validMethod) {
                     $outcome = null;
                     if ($dataObject->hasMethod($validMethod)) {
                         $outcome = $dataObject->{$validMethod}();
-                    } elseif (! empty($dataObject->{$validMethod})) {
+                    } elseif (!empty($dataObject->{$validMethod})) {
                         $outcome = $dataObject->{$validMethod};
                     }
 
@@ -216,7 +229,7 @@ class FindEditableObjects
                 continue;
             }
 
-            if (! isset($this->relationTypesCovered[$relType])) {
+            if (!isset($this->relationTypesCovered[$relType])) {
                 $rels = $dataObject->{$relationName}();
                 if ($rels) {
                     if ($rels instanceof DataList) {
@@ -243,7 +256,7 @@ class FindEditableObjects
 
     protected function getRelations($dataObject): array
     {
-        if (! isset($this->cache['rels'][$dataObject->ClassName])) {
+        if (!isset($this->cache['rels'][$dataObject->ClassName])) {
             $this->cache['rels'][$dataObject->ClassName] = array_merge(
                 Config::inst()->get($dataObject->ClassName, 'belongs_to'),
                 Config::inst()->get($dataObject->ClassName, 'has_one'),
@@ -252,7 +265,7 @@ class FindEditableObjects
                 Config::inst()->get($dataObject->ClassName, 'many_many')
             );
             foreach ($this->cache['rels'][$dataObject->ClassName] as $key => $value) {
-                if (! in_array($value, $this->excludedClasses, true)) {
+                if (!(is_string($value) && class_exists($value) && $this->classCanBeIncluded($value))) {
                     unset($this->cache['rels'][$dataObject->ClassName][$key]);
                 }
             }
@@ -263,10 +276,26 @@ class FindEditableObjects
 
     protected function getValidMethods(string $type): array
     {
-        if (! isset($this->cache['validMethods'][$type])) {
+        if (!isset($this->cache['validMethods'][$type])) {
             $this->cache['validMethods'][$type] = $this->Config()->get($type);
         }
 
         return $this->cache['validMethods'][$type];
+    }
+
+    protected function classCanBeIncluded(string $dataObjectClassName): bool
+    {
+        if(count($this->excludedClasses) || count($this->includedClasses)) {
+            if(!class_exists($dataObjectClassName)) {
+                return false;
+            }
+            if (count($this->includedClasses)) {
+                return in_array($dataObjectClassName, $this->includedClasses, true);
+            }
+
+            return !in_array($dataObjectClassName, $this->excludedClasses, true);
+        }
+        user_error('Please set either excludedClasses or includedClasses', E_USER_NOTICE);
+        return false;
     }
 }

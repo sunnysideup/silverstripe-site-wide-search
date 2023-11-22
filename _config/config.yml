@@ -1,9 +1,9 @@
 ---
 Name: site-wide-search
 ---
-
 SilverStripe\Core\Injector\Injector:
   Psr\SimpleCache\CacheInterface.siteWideSearch:
     factory: SilverStripe\Core\Cache\CacheFactory
     constructor:
-      namespace: "siteWideSearch"
+      namespace: 'siteWideSearch'
+      defaultLifetime: 86400

@@ -46,9 +46,15 @@ class SearchApi
 
     protected $baseClass = DataObject::class;
 
+    protected $searchTemplateName = 'all';
+
     protected $excludedClasses = [];
 
+    protected $includedClasses = [];
+
     protected $excludedFields = [];
+
+    protected $includedFields = [];
 
     protected $words = [];
 
@@ -115,9 +121,21 @@ class SearchApi
         'ID',
     ];
 
+    private static $default_include_classes = [];
+
+    private static $default_include_fields = [
+    ];
+
     public function setDebug(bool $b): SearchApi
     {
         $this->debug = $b;
+
+        return $this;
+    }
+
+    public function setSearchTemplateName(string $s): SearchApi
+    {
+        $this->searchTemplateName = $s;
 
         return $this;
     }
@@ -150,9 +168,22 @@ class SearchApi
         return $this;
     }
 
+    public function setIncludedClasses(array $a): SearchApi
+    {
+        $this->includedClasses = $a;
+        return $this;
+    }
+
     public function setExcludedFields(array $a): SearchApi
     {
         $this->excludedFields = $a;
+
+        return $this;
+    }
+
+    public function setIncludedFields(array $a): SearchApi
+    {
+        $this->includedFields = $a;
 
         return $this;
     }
@@ -185,14 +216,14 @@ class SearchApi
 
     public function initCache(): self
     {
-        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME);
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $this->searchTemplateName);
 
         return $this;
     }
 
     public function saveCache(): self
     {
-        $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
+        $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->searchTemplateName, $this->cache);
 
         return $this;
     }
@@ -264,7 +295,7 @@ class SearchApi
             $myStage = Versioned::get_stage();
             Versioned::set_stage(Versioned::DRAFT);
             // is it on live and is live the same as draft
-            $canBePublished = $item->isPublished() && ! $item->isModifiedOnDraft();
+            $canBePublished = $item->isPublished() && !$item->isModifiedOnDraft();
             $item->writeToStage(Versioned::DRAFT);
             if ($canBePublished) {
                 $item->publishSingle();
@@ -283,7 +314,7 @@ class SearchApi
         if ($this->debug) {
             $startOuter = microtime(true);
         }
-        $this->workOutExclusions();
+        $this->workOutInclusionsAndExclusions();
         $this->workOutWords($word);
         if ($this->debug) {
             DB::alteration_message('Words searched for ' . implode(', ', $this->words));
@@ -296,13 +327,19 @@ class SearchApi
                 if ($this->debug) {
                     DB::alteration_message(' ... Searching in ' . $className);
                 }
-
-                if (! in_array($className, $this->excludedClasses, true)) {
+                if(count($this->includedClasses) && !in_array($className, $this->includedClasses, true)) {
+                    continue;
+                }
+                if (!in_array($className, $this->excludedClasses, true)) {
                     $array[$className] = [];
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
                     foreach ($fields as $field) {
-                        if (! in_array($field, $this->excludedFields, true)) {
+                        if(count($this->includedFields) && !in_array($field, $this->includedFields, true)) {
+                            continue;
+                        }
+
+                        if (!in_array($field, $this->excludedFields, true)) {
                             if ($this->debug) {
                                 DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
                             }
@@ -354,14 +391,17 @@ class SearchApi
         $back = $this->config()->get('hours_back_for_recent') ?? 24;
         $limit = $this->Config()->get('limit_per_class_for_recent') ?? 5;
         $threshold = strtotime('-' . $back . ' hours', DBDatetime::now()->getTimestamp());
-        if (! $threshold) {
+        if (!$threshold) {
             $threshold = time() - 86400;
         }
 
         $array = [];
         $classNames = $this->getAllDataObjects();
         foreach ($classNames as $className) {
-            if (! in_array($className, $this->excludedClasses, true)) {
+            if(count($this->includedClasses) && !in_array($className, $this->includedClasses, true)) {
+                continue;
+            }
+            if (!in_array($className, $this->excludedClasses, true)) {
                 $array[$className] = $className::get()
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
                     ->sort(['LastEdited' => 'DESC'])
@@ -422,12 +462,14 @@ class SearchApi
         //return values
         $list = ArrayList::create();
         $finder = Injector::inst()->get(FindEditableObjects::class);
-        $finder->initCache();
+        $finder->initCache()
+            ->setIncludedClasses($this->includedClasses)
+            ->setExcludedClasses($this->excludedClasses);
 
         $items = $this->turnArrayIntoObjects($matches);
         foreach ($items as $item) {
             $link = $finder->getLink($item, $this->excludedClasses);
-            $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item, $this->excludedClasses) : '';
+            $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
             $list->push(
                 ArrayData::create(
                     [
@@ -470,7 +512,7 @@ class SearchApi
             $testWords = array_unique($testWords);
             foreach ($testWords as $wordKey => $word) {
                 //match a exact field to full words / one word
-                $fullWords = ! (bool) $wordKey;
+                $fullWords = !(bool) $wordKey;
                 if (false === $done) {
                     $count = 0;
                     foreach ($fieldValues as $fieldValue) {
@@ -520,7 +562,7 @@ class SearchApi
         return $score + (1 / (strtotime($item->LastEdited) - 1104537600));
     }
 
-    protected function workOutExclusions()
+    protected function workOutInclusionsAndExclusions()
     {
         $this->excludedClasses = array_unique(
             array_merge(
@@ -532,6 +574,18 @@ class SearchApi
             array_merge(
                 $this->Config()->get('default_exclude_fields'),
                 $this->excludedFields
+            )
+        );
+        $this->includedClasses = array_unique(
+            array_merge(
+                $this->Config()->get('default_include_classes'),
+                $this->includedClasses
+            )
+        );
+        $this->includedFields = array_unique(
+            array_merge(
+                $this->Config()->get('default_include_fields'),
+                $this->includedFields
             )
         );
     }
@@ -546,7 +600,7 @@ class SearchApi
             $this->words[] = $word;
         }
 
-        if (! count($this->words)) {
+        if (!count($this->words)) {
             user_error('No word has been provided');
         }
 
@@ -563,7 +617,7 @@ class SearchApi
             DB::alteration_message('Base Class: ' . $this->baseClass);
         }
 
-        if (! isset($this->cache['AllDataObjects'][$this->baseClass])) {
+        if (!isset($this->cache['AllDataObjects'][$this->baseClass])) {
             $this->cache['AllDataObjects'][$this->baseClass] = array_values(
                 ClassInfo::subclassesFor($this->baseClass, false)
             );
@@ -575,7 +629,7 @@ class SearchApi
 
     protected function getAllValidFields(string $className): array
     {
-        if (! isset($this->cache['AllValidFields'][$className])) {
+        if (!isset($this->cache['AllValidFields'][$className])) {
             $array = [];
             $fullList = Config::inst()->get($className, 'db');
             if (is_array($fullList)) {
@@ -601,7 +655,7 @@ class SearchApi
 
     protected function getIndexedFields(string $className, array $dbFields): array
     {
-        if (! isset($this->cache['IndexedFields'][$className])) {
+        if (!isset($this->cache['IndexedFields'][$className])) {
             $this->cache['IndexedFields'][$className] = [];
             $indexes = Config::inst()->get($className, 'indexes');
             if (is_array($indexes)) {
@@ -636,7 +690,7 @@ class SearchApi
 
     protected function isValidFieldType(string $className, string $fieldName, string $type): bool
     {
-        if (! isset($this->cache['ValidFieldTypes'][$type])) {
+        if (!isset($this->cache['ValidFieldTypes'][$type])) {
             $this->cache['ValidFieldTypes'][$type] = false;
             $singleton = Injector::inst()->get($className);
             $field = $singleton->dbObject($fieldName);

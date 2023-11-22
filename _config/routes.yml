@@ -1,0 +1,6 @@
+---
+Name: site-wide-search-rules
+---
+SilverStripe\Control\Director:
+  rules:
+    admin/quicksearchresponse///$Action/$ID/$OtherID: Sunnysideup\SiteWideSearch\Control\QuickSearchController

@@ -60,14 +60,6 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 ->setAttribute('placeholder', 'e.g. agreement')
         );
         $form->Fields()->push(
-            (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
-                ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below')
-        );
-        $form->Fields()->push(
-            (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
-                ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.')
-        );
-        $form->Fields()->push(
             (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
                 ->setDescription('This is faster but only searches a limited number of fields')
         );
@@ -75,12 +67,24 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             (new CheckboxField('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
                 ->setDescription('If ticked, any item will be included that includes the whole phrase (e.g. New Zealand, rather than New OR Zealand)')
         );
-        if (! $this->getRequest()->requestVar('Keywords')) {
+
+        $form->Fields()->push(
+            (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
+                ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below')
+        );
+        $form->Fields()->push(
+            (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
+                ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.')
+        );
+
+        if (!$this->getRequest()->requestVar('Keywords')) {
             $resultsTitle = 'Recently Edited';
             $this->listHTML = $this->renderWith(self::class . '_Results');
         } else {
             $resultsTitle = 'Search Results';
         }
+
+        $form->setFormMethod('get', false);
 
         $form->Fields()->push(
             (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
@@ -133,14 +137,19 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         return new ArrayList([$items[0]]);
     }
 
+    public function IsQuickSearch(): bool
+    {
+        return $this->isQuickSearch;
+    }
+
     public function SearchResults(): ?ArrayList
     {
         Environment::increaseTimeLimitTo(300);
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
-        $this->isQuickSearch = ! empty($this->rawData['QuickSearch']);
-        $this->searchWholePhrase = ! empty($this->rawData['SearchWholePhrase']);
-        $this->applyReplace = ! empty($this->rawData['ApplyReplace']);
+        $this->isQuickSearch = $this->workOutBoolean('QuickSearch', $this->rawData, true);
+        $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, true);
+        $this->applyReplace = isset($this->rawData['ReplaceWith']) && $this->workOutBoolean('ApplyReplace', $this->rawData, false);
         $this->keywords = trim($this->rawData['Keywords'] ?? '');
         $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
         if ($this->applyReplace) {
@@ -162,6 +171,15 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             ->setWordsAsString($this->keywords)
             ->getLinks()
         ;
+    }
+
+    protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false)
+    {
+        $val = $data[$fieldName] ?? $default;
+        if(!$val) {
+            return false;
+        }
+        return $val === '1' || $val === 'true' || $val === 'on' || $val === 'yes' || $val === true;
     }
 
     public function providePermissions()
