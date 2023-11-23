@@ -23,6 +23,7 @@ class FindEditableObjects
      */
     private const CACHE_NAME = 'FindEditableObjectsCache';
 
+    protected $additionalCacheName = '';
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
@@ -114,7 +115,15 @@ class FindEditableObjects
 
     public function initCache(string $additionalCacheName): self
     {
-        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $additionalCacheName);
+        $this->additionalCacheName = $additionalCacheName;
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $this->additionalCacheName);
+
+        return $this;
+    }
+
+    public function saveCache(): self
+    {
+        $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->additionalCacheName, $this->cache);
 
         return $this;
     }
@@ -129,13 +138,6 @@ class FindEditableObjects
     public function setIncludedClasses(array $includedClasses): self
     {
         $this->includedClasses = $includedClasses;
-
-        return $this;
-    }
-
-    public function saveCache(): self
-    {
-        $this->getFileCache()->setCacheValues(self::CACHE_NAME, $this->cache);
 
         return $this;
     }

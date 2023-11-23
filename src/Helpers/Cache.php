@@ -27,6 +27,7 @@ class Cache implements Flushable
 
     public function getCacheValues($cacheName): array
     {
+        $cacheName = $this->cleanCacheName($cacheName);
         $cache = $this->getCache();
         $array = $cache->has($cacheName) ? unserialize($cache->get($cacheName)) : [];
 
@@ -35,9 +36,15 @@ class Cache implements Flushable
 
     public function setCacheValues($cacheName, array $array): self
     {
+        $cacheName = $this->cleanCacheName($cacheName);
         $cache = $this->getCache();
         $cache->set($cacheName, serialize($array));
 
         return $this;
+    }
+
+    public function cleanCacheName(string $string)
+    {
+        return crc32($string);
     }
 }
