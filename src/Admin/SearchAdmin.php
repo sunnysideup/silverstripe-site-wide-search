@@ -77,7 +77,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 'QuickSearchType',
                 'Quick Search',
                 $options
-            )->setValue($this->quickSearchType ?: $this->Config()->get('default_quick_search_type'))
+            )->setValue($this->bestSearchType())
         );
 
         $fields->push(
@@ -166,8 +166,8 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
         $this->keywords = $this->workOutString('Keywords', $this->rawData);
-        $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, $this->config()->get('default_quick_search_type'));
-        $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, true);
+        $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, $this->bestSearchType());
+        $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, false);
         $this->applyReplace = isset($this->rawData['ReplaceWith']) && $this->workOutBoolean('ApplyReplace', $this->rawData, false);
         $this->replace = $this->workOutString('ReplaceWith', $this->rawData);
         if ($this->applyReplace) {
@@ -214,5 +214,20 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 'help' => 'Allow users to search for documents (all documents will also be checked to see if they are allowed to be viewed)',
             ],
         ];
+    }
+
+    protected function bestSearchType(): string
+    {
+        // Accessing the session
+        $session = $this->getRequest()->getSession();
+        if($this->quickSearchType) {
+            $session->set('QuickSearchType', $this->quickSearchType);
+        } else {
+            $this->quickSearchType = $session->get('QuickSearchType');
+        }
+        if(!$this->quickSearchType) {
+            $this->quickSearchType = $this->Config()->get('default_quick_search_type');
+        }
+        return (string) $this->quickSearchType;
     }
 }

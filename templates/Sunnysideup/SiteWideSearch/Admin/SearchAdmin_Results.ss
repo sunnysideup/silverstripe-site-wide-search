@@ -15,9 +15,9 @@
         <li>
             <% if CMSThumbnail %>$CMSThumbnail<% end_if %>
             <% if $HasCMSEditLink %>
-            <a href="$CMSEditLink" class="edit">✎</a>
+            <a href="$CMSEditLink" class="edit-from-quick-search">✎</a>
             <% else %>
-            <a href="$CMSEditLink" class="edit disabled">&nbsp;</a>
+            <a class="edit-from-quick-search disabled">&nbsp;</a>
             <% end_if %>
             —
             <a <% if $HasLink %>href="$Link"<% else %>class="disabled"<% end_if %> target="new">
