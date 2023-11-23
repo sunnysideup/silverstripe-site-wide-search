@@ -77,12 +77,15 @@ class FindEditableObjects
     protected $cache = [
         'valid_methods_edit',
         'valid_methods_view',
+        'valid_methods_image',
         'valid_methods_view_links',
         'valid_methods_edit_links',
+        'valid_methods_image_links',
         'rels',
         'validMethods' => [
             'valid_methods_edit' => [],
             'valid_methods_view' => [],
+            'valid_methods_image' => [],
         ],
     ];
 
@@ -98,14 +101,20 @@ class FindEditableObjects
         'Link',
     ];
 
+    private static $valid_methods_image = [
+        'StripThumbnail',
+        'CMSThumbnail',
+        'getCMSThumbnail',
+    ];
+
     public function getFileCache()
     {
         return Injector::inst()->get(Cache::class);
     }
 
-    public function initCache(): self
+    public function initCache(string $additionalCacheName): self
     {
-        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME);
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $additionalCacheName);
 
         return $this;
     }
@@ -142,13 +151,23 @@ class FindEditableObjects
     }
 
     /**
-     * returns an link to an object that can be viewed.
+     * returns a link to an object that can be viewed.
      *
      * @param mixed $dataObject
      */
     public function getLink($dataObject): string
     {
         return $this->getLinkInner($dataObject, 'valid_methods_view');
+    }
+
+    /**
+     * returns link to a thumbnail.
+     *
+     * @param mixed $dataObject
+     */
+    public function getCMSThumbnail($dataObject): string
+    {
+        return $this->getLinkInner($dataObject, 'valid_methods_image');
     }
 
     /**

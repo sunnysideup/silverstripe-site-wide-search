@@ -13,6 +13,7 @@ use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
+use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\ORM\FieldType\DBString;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
@@ -474,26 +475,29 @@ class SearchApi
         //return values
         $list = ArrayList::create();
         $finder = Injector::inst()->get(FindEditableObjects::class);
-        $finder->initCache()
+        $finder->initCache($this->quickSearchType)
             ->setIncludedClasses($this->includedClasses)
             ->setExcludedClasses($this->excludedClasses);
 
         $items = $this->turnArrayIntoObjects($matches);
         foreach ($items as $item) {
             $link = $finder->getLink($item, $this->excludedClasses);
-            $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
-            $list->push(
-                ArrayData::create(
-                    [
-                        'HasLink' => (bool) $link,
-                        'HasCMSEditLink' => (bool) $cmsEditLink,
-                        'Link' => $link,
-                        'CMSEditLink' => $cmsEditLink,
-                        'Object' => $item,
-                        'SiteWideSearchSortValue' => $this->getSortValue($item),
-                    ]
-                )
-            );
+            if($item->canView()) {
+                $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
+                $list->push(
+                    ArrayData::create(
+                        [
+                            'HasLink' => (bool) $link,
+                            'HasCMSEditLink' => (bool) $cmsEditLink,
+                            'Link' => $link,
+                            'CMSEditLink' => $cmsEditLink,
+                            'Object' => $item,
+                            'SiteWideSearchSortValue' => $this->getSortValue($item),
+                            'CMSThumbnail' => DBField::create_field('HTMLText', $finder->getCMSThumbnail($item)),
+                        ]
+                    )
+                );
+            }
         }
 
         $finder->saveCache();

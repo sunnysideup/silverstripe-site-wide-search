@@ -2,20 +2,22 @@
 <ul class="search-results-for-site-wide-search">
     <% if $IsQuickSearch %>
         <% loop $SearchResults %>
+        <% if $HasCMSEditLink %>
         <li>
-            <% if $HasCMSEditLink %>
-            <a href="$CMSEditLink" class="edit" style="font-family: monospace;">[✎]</a>
+            <a href="$CMSEditLink" class="edit-from-quick-search">✎</a>
             <strong>$Object.i18n_singular_name:</strong> $Object.Title
-            <% end_if %>
+            <% if CMSThumbnail %>$CMSThumbnail<% end_if %>
         </li>
+        <% end_if %>
         <% end_loop %>
     <% else %>
         <% loop $SearchResults %>
         <li>
+            <% if CMSThumbnail %>$CMSThumbnail<% end_if %>
             <% if $HasCMSEditLink %>
-            <a href="$CMSEditLink" class="edit" style="font-family: monospace;">[✎]</a>
+            <a href="$CMSEditLink" class="edit">✎</a>
             <% else %>
-            <a href="$CMSEditLink" class="edit disabled" style="font-family: monospace;">&nbsp;</a>
+            <a href="$CMSEditLink" class="edit disabled">&nbsp;</a>
             <% end_if %>
             —
             <a <% if $HasLink %>href="$Link"<% else %>class="disabled"<% end_if %> target="new">

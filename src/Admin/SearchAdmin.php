@@ -34,7 +34,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $applyReplace = false;
 
-    protected $quickSearchType = 'all';
+    protected $quickSearchType = '';
 
     protected $searchWholePhrase = false;
 
@@ -166,7 +166,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
         $this->keywords = $this->workOutString('Keywords', $this->rawData);
-        $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, 'limited');
+        $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, $this->config()->get('default_quick_search_type'));
         $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, true);
         $this->applyReplace = isset($this->rawData['ReplaceWith']) && $this->workOutBoolean('ApplyReplace', $this->rawData, false);
         $this->replace = $this->workOutString('ReplaceWith', $this->rawData);
@@ -181,12 +181,18 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             $this->applyReplace = false;
         }
 
-        return Injector::inst()->get(SearchApi::class)
+        $results = Injector::inst()->get(SearchApi::class)
             ->setQuickSearchType($this->quickSearchType)
             ->setSearchWholePhrase($this->searchWholePhrase)
             ->setWordsAsString($this->keywords)
             ->getLinks()
         ;
+        if($results->count() === 1) {
+            $result = $results->first();
+            $this->redirect($result->CMSEditLink);
+            return null;
+        }
+        return $results;
     }
 
     protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false): bool

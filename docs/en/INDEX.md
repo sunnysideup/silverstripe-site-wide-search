@@ -36,6 +36,11 @@ $myLinks = Injector::inst()->get(SearchApi::class)
 Also consider:
 
 ```yml
+---
+Name: app-search-quick
+After:
+  - site-wide-search
+---
 Sunnysideup\SiteWideSearch\Admin\SearchAdmin:
   default_quick_search_type: Website\App\QuickSearches\MyQuickSearch
 ```
