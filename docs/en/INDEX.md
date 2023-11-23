@@ -30,3 +30,46 @@ $myLinks = Injector::inst()->get(SearchApi::class)
     ->setWords(['MyNiceWord', 'OtherWord'])
     ->getLinks();
 ```
+
+## creating your own searches:
+
+Also consider:
+
+```yml
+Sunnysideup\SiteWideSearch\Admin\SearchAdmin:
+  default_quick_search_type: Website\App\QuickSearches\MyQuickSearch
+```
+
+And then creat your own quick search class:
+
+```php
+
+namespace Website\App\QuickSearches\MyQuickSearch;
+
+
+use Website\App\MyDataObject;
+use SilverStripe\Core\ClassInfo;
+use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
+
+class QuickSearchPage extends QuickSearchBaseClass
+{
+    public function getTitle(): string
+    {
+        return 'Pages';
+    }
+    public function getClassesToSearch(): array
+    {
+        return ClassInfo::subclassesFor(MyDataObject::class, false);
+    }
+    public function getFieldsToSearch(): array
+    {
+        return [
+            'Title',
+            'URLSegment',
+            'MenuTitle',
+        ];
+    }
+
+}
+
+```

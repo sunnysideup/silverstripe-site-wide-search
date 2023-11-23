@@ -110,9 +110,6 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         $fields->push(
             (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
         );
-        $fields->push(
-            (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
-        );
         $form->Actions()->push(
             FormAction::create('search', 'Find')
                 ->addExtraClass('btn-primary')
