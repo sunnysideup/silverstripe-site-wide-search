@@ -28,7 +28,7 @@
       "Sunnysideup\\SiteWideSearch\\": "src/"
     }
   },
-  "config": {
-    "vendor-expose": "client/dist"
+  "extra": {
+    "expose": "client/dist"
   }
 }
