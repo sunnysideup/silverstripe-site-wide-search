@@ -57,4 +57,6 @@ class QuickSearchController extends Controller
     {
         return '';
     }
+
+
 }

@@ -6,4 +6,10 @@ SilverStripe\Core\Injector\Injector:
     factory: SilverStripe\Core\Cache\CacheFactory
     constructor:
       namespace: 'siteWideSearch'
-      defaultLifetime: 86400
+      defaultLifetime: 864000
+
+SilverStripe\Admin\LeftAndMain:
+  extra_requirements_css:
+    - 'sunnysideup/site-wide-search: client/dist/styles/search.css'
+  extra_requirements_javascript:
+    - 'sunnysideup/site-wide-search: client/dist/js/search.js'

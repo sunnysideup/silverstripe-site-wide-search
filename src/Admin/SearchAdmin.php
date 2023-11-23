@@ -4,20 +4,25 @@ namespace Sunnysideup\SiteWideSearch\Admin;
 
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Control\HTTPResponse;
+use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injector;
 
 use SilverStripe\Core\Environment;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
+use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\HTMLReadonlyField;
 use SilverStripe\Forms\LiteralField;
+use SilverStripe\Forms\OptionsetField;
 use SilverStripe\Forms\TextField;
+use SilverStripe\Forms\ToggleCompositeField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\PermissionProvider;
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
+use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
 
 class SearchAdmin extends LeftAndMain implements PermissionProvider
 {
@@ -29,11 +34,13 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $applyReplace = false;
 
-    protected $isQuickSearch = false;
+    protected $quickSearchType = 'all';
 
     protected $searchWholePhrase = false;
 
     protected $rawData;
+
+    private static $default_quick_search_type = 'all';
 
     private static $url_segment = 'find';
 
@@ -50,32 +57,46 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     public function getEditForm($id = null, $fields = null)
     {
         $form = parent::getEditForm($id, $fields);
+        $fields = $form->Fields();
 
         // if ($form instanceof HTTPResponse) {
         //     return $form;
         // }
-        // $form->Fields()->removeByName('LastVisited');
-        $form->Fields()->push(
+        // $fields->removeByName('LastVisited');
+        $fields->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
                 ->setAttribute('placeholder', 'e.g. agreement')
         );
-        $form->Fields()->push(
-            (new CheckboxField('QuickSearch', 'Search Main Fields Only', $this->isQuickSearch))
-                ->setDescription('This is faster but only searches a limited number of fields')
+        $fields->push(
+            (new HiddenField('IsSubmitHiddenField', 'IsSubmitHiddenField', 1))
         );
-        $form->Fields()->push(
+
+        $options = QuickSearchBaseClass::get_list_of_quick_searches();
+        $fields->push(
+            OptionsetField::create(
+                'QuickSearchType',
+                'Quick Search',
+                $options
+            )->setValue($this->quickSearchType ?: $this->Config()->get('default_quick_search_type'))
+        );
+
+        $fields->push(
             (new CheckboxField('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
                 ->setDescription('If ticked, any item will be included that includes the whole phrase (e.g. New Zealand, rather than New OR Zealand)')
         );
+        $fields->push(
+            ToggleCompositeField::create(
+                'ReplaceToggle',
+                _t(__CLASS__ . '.ReplaceToggle', 'Replace with ... (optional - make a backup first!)'),
+                [
+                    (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
+                      ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.'),
+                    (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
+                        ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below'),
+                ]
+            )->setHeadingLevel(4)
+        );
 
-        $form->Fields()->push(
-            (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
-                ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below')
-        );
-        $form->Fields()->push(
-            (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
-                ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.')
-        );
 
         if (!$this->getRequest()->requestVar('Keywords')) {
             $resultsTitle = 'Recently Edited';
@@ -86,10 +107,10 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
         $form->setFormMethod('get', false);
 
-        $form->Fields()->push(
+        $fields->push(
             (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
         );
-        $form->Fields()->push(
+        $fields->push(
             (new LiteralField('Styling', $this->renderWith(self::class . '_Styling')))
         );
         $form->Actions()->push(
@@ -139,7 +160,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     public function IsQuickSearch(): bool
     {
-        return $this->isQuickSearch;
+        return $this->quickSearchType !== 'all';
     }
 
     public function SearchResults(): ?ArrayList
@@ -147,39 +168,42 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::increaseTimeLimitTo(300);
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
-        $this->isQuickSearch = $this->workOutBoolean('QuickSearch', $this->rawData, true);
+        $this->keywords = $this->workOutString('Keywords', $this->rawData);
+        $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, 'limited');
         $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, true);
         $this->applyReplace = isset($this->rawData['ReplaceWith']) && $this->workOutBoolean('ApplyReplace', $this->rawData, false);
-        $this->keywords = trim($this->rawData['Keywords'] ?? '');
-        $this->replace = trim($this->rawData['ReplaceWith'] ?? '');
+        $this->replace = $this->workOutString('ReplaceWith', $this->rawData);
         if ($this->applyReplace) {
             Injector::inst()->get(SearchApi::class)
-                ->setBaseClass(DataObject::class)
-                ->setIsQuickSearch($this->isQuickSearch)
+                ->setQuickSearchType($this->quickSearchType)
                 ->setSearchWholePhrase(true)
                 ->setWordsAsString($this->keywords)
-                ->buildCache()
+                ->buildCache() // make sure we have the lastest cache!
                 ->doReplacement($this->keywords, $this->replace)
             ;
             $this->applyReplace = false;
         }
 
         return Injector::inst()->get(SearchApi::class)
-            ->setBaseClass(DataObject::class)
-            ->setIsQuickSearch($this->isQuickSearch)
+            ->setQuickSearchType($this->quickSearchType)
             ->setSearchWholePhrase($this->searchWholePhrase)
             ->setWordsAsString($this->keywords)
             ->getLinks()
         ;
     }
 
-    protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false)
+    protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false): bool
     {
-        $val = $data[$fieldName] ?? $default;
+        $val = isset($data['IsSubmitHiddenField']) ? !empty($data[$fieldName]) : $default;
         if(!$val) {
             return false;
         }
         return $val === '1' || $val === 'true' || $val === 'on' || $val === 'yes' || $val === true;
+    }
+
+    protected function workOutString(string $fieldName, ?array $data = null, ?string $default = ''): string
+    {
+        return trim($data[$fieldName] ?? $default);
     }
 
     public function providePermissions()

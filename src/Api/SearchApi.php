@@ -46,7 +46,7 @@ class SearchApi
 
     protected $baseClass = DataObject::class;
 
-    protected $searchTemplateName = 'all';
+    protected $quickSearchType = 'all';
 
     protected $excludedClasses = [];
 
@@ -123,8 +123,7 @@ class SearchApi
 
     private static $default_include_classes = [];
 
-    private static $default_include_fields = [
-    ];
+    private static $default_include_fields = [];
 
     public function setDebug(bool $b): SearchApi
     {
@@ -133,9 +132,22 @@ class SearchApi
         return $this;
     }
 
-    public function setSearchTemplateName(string $s): SearchApi
+    public function setQuickSearchType(string $s): SearchApi
     {
-        $this->searchTemplateName = $s;
+        if($s === 'all') {
+            $this->isQuickSearch = false;
+            $this->quickSearchType = '';
+        } elseif($s === 'limited') {
+            $this->isQuickSearch = true;
+            $this->quickSearchType = '';
+        } elseif(class_exists($s)) {
+            $this->quickSearchType = $s;
+            $object = Injector::inst()->get($s);
+            $this->setIncludedClasses($object->getClassesToSearch());
+            $this->setIncludedFields($object->getFieldsToSearch());
+        } else {
+            user_error('QuickSearchType must be either "all" or "limited" or a defined quick search class. Provided was: ' . $s);
+        }
 
         return $this;
     }
@@ -216,14 +228,14 @@ class SearchApi
 
     public function initCache(): self
     {
-        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $this->searchTemplateName);
+        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $this->quickSearchType);
 
         return $this;
     }
 
     public function saveCache(): self
     {
-        $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->searchTemplateName, $this->cache);
+        $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->quickSearchType, $this->cache);
 
         return $this;
     }

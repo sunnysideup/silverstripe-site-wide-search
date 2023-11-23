@@ -33,16 +33,16 @@ class FindEditableObjects
      * ```php
      *      [
      *          'valid_methods_edit' => [
-     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameA => false, // tested and does not have any available methods
      *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
      *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
-     *              ClassNameD => true, // tested and does not have any available methods
+     *              ClassNameD => false, // tested and does not have any available methods
      *          ],
      *          'valid_methods_view' => [
-     *              ClassNameA => true, // tested and does not have any available methods
+     *              ClassNameA => false, // tested and does not have any available methods
      *              ClassNameB => MethodName1, // tested found method MethodName1 that can be used.
      *              ClassNameC => MethodName2, // tested found method MethodName2 that can be used.
-     *              ClassNameD => true, // tested and does not have any available methods
+     *              ClassNameD => false, // tested and does not have any available methods
      *          ],
      *          'valid_methods_view_links' => [
      *              [ClassNameX_IDY] => 'MyLinkView',
@@ -70,7 +70,7 @@ class FindEditableObjects
      *          ]
      *     ]
      * ```
-     * we use true rather than false to be able to use empty to work out if it has been tested before.
+     * we use false to be able to use empty to work out if it has been tested before.
      *
      * @var array
      */
@@ -179,10 +179,10 @@ class FindEditableObjects
 
         $validMethods = $this->getValidMethods($type);
 
-        $this->relationTypesCovered[$dataObject->ClassName] = true;
+        $this->relationTypesCovered[$dataObject->ClassName] = false;
 
         // quick return
-        if (isset($this->cache[$type][$dataObject->ClassName]) && true !== $this->cache[$type][$dataObject->ClassName]) {
+        if (isset($this->cache[$type][$dataObject->ClassName]) && false !== $this->cache[$type][$dataObject->ClassName]) {
             $validMethod = $this->cache[$type][$dataObject->ClassName];
             if ($dataObject->hasMethod($validMethod)) {
                 return (string) $dataObject->{$validMethod}();
@@ -192,7 +192,7 @@ class FindEditableObjects
         }
 
         if ($this->classCanBeIncluded($dataObject->ClassName)) {
-            if (empty($this->cache[$type][$dataObject->ClassName]) || true !== $this->cache[$type][$dataObject->ClassName]) {
+            if (empty($this->cache[$type][$dataObject->ClassName]) || false !== $this->cache[$type][$dataObject->ClassName]) {
                 foreach ($validMethods as $validMethod) {
                     $outcome = null;
                     if ($dataObject->hasMethod($validMethod)) {

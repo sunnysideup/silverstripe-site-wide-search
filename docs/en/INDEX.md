@@ -10,6 +10,7 @@ If it does then you can build your own presentation layer using the API:
 //use statements need to be added !
 
 $myLinks = Injector::inst()->get(SearchApi::class)
+    ->setSearchTemplateName(MyQuickSearch::class)
     ->setBaseClass(DataObject::class)
     ->setExcludedClasses([MyMemberDetails::class])
     ->setExcludedFields(['SecretStuff'])
@@ -19,4 +20,13 @@ $myLinks = Injector::inst()->get(SearchApi::class)
     ->setWords(['MyNiceWord', 'OtherWord'])
     ->getLinks();
 
+```
+
+OR
+
+```php
+
+$myLinks = Injector::inst()->get(SearchApi::class)
+    ->setWords(['MyNiceWord', 'OtherWord'])
+    ->getLinks();
 ```
