@@ -10,6 +10,6 @@ SilverStripe\Core\Injector\Injector:
 
 SilverStripe\Admin\LeftAndMain:
   extra_requirements_css:
-    - 'sunnysideup/site-wide-search: client/dist/styles/search.css'
+    - 'sunnysideup/site-wide-search: client/dist/search.css'
   extra_requirements_javascript:
-    - 'sunnysideup/site-wide-search: client/dist/js/search.js'
+    - 'sunnysideup/site-wide-search: client/dist/search.js'
