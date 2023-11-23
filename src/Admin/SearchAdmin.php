@@ -40,7 +40,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $rawData;
 
-    private static $default_quick_search_type = 'all';
+    private static $default_quick_search_type = 'limited';
 
     private static $url_segment = 'find';
 
@@ -194,11 +194,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false): bool
     {
-        $val = isset($data['IsSubmitHiddenField']) ? !empty($data[$fieldName]) : $default;
-        if(!$val) {
-            return false;
-        }
-        return $val === '1' || $val === 'true' || $val === 'on' || $val === 'yes' || $val === true;
+        return (bool) (isset($data['IsSubmitHiddenField']) ? !empty($data[$fieldName]) : $default);
     }
 
     protected function workOutString(string $fieldName, ?array $data = null, ?string $default = ''): string
