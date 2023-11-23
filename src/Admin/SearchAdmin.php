@@ -222,8 +222,12 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         $session = $this->getRequest()->getSession();
         if($this->quickSearchType) {
             $session->set('QuickSearchType', $this->quickSearchType);
-        } else {
+        } elseif($session) {
             $this->quickSearchType = $session->get('QuickSearchType');
+            if(isset($_GET['flush'])) {
+                $this->quickSearchType = '';
+                $session->set('QuickSearchType', '');
+            }
         }
         if(!$this->quickSearchType) {
             $this->quickSearchType = $this->Config()->get('default_quick_search_type');
