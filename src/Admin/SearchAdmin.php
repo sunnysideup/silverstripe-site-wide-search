@@ -54,6 +54,16 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         'CMS_ACCESS_SITE_WIDE_SEARCH',
     ];
 
+    protected function init()
+    {
+        if($this->request->param('Action')) {
+            if(empty($this->request->postVars())) {
+                $this->redirect('/admin/find');
+            }
+        }
+        parent::init();
+    }
+
     public function getEditForm($id = null, $fields = null)
     {
         $form = parent::getEditForm($id, $fields);
@@ -99,7 +109,12 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
 
         if (!$this->getRequest()->requestVar('Keywords')) {
-            $resultsTitle = 'Recently Edited';
+            $lastResults = $this->lastSearchResults();
+            if($lastResults) {
+                $resultsTitle = 'Last Results';
+            } else {
+                $resultsTitle = 'Last Edited';
+            }
             $this->listHTML = $this->renderWith(self::class . '_Results');
         } else {
             $resultsTitle = 'Search Results';
@@ -165,6 +180,12 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::increaseTimeLimitTo(300);
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
+        if(empty($this->rawData)) {
+            $lastResults = $this->lastSearchResults();
+            if($lastResults) {
+                return $lastResults;
+            }
+        }
         $this->keywords = $this->workOutString('Keywords', $this->rawData);
         $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, $this->bestSearchType());
         $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, false);
@@ -191,6 +212,11 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             $result = $results->first();
             $this->redirect($result->CMSEditLink);
             return null;
+        }
+        // Accessing the session
+        $session = $this->getRequest()->getSession();
+        if($session) {
+            $session->set('QuickSearchLastResults', serialize($results->toArray()));
         }
         return $results;
     }
@@ -233,5 +259,27 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             $this->quickSearchType = $this->Config()->get('default_quick_search_type');
         }
         return (string) $this->quickSearchType;
+    }
+
+    protected function lastSearchResults(): ?ArrayList
+    {
+        // Accessing the session
+        $session = $this->getRequest()->getSession();
+        if($session) {
+            if(isset($_GET['flush'])) {
+                $session->clear('QuickSearchLastResults');
+            } else {
+                $data = $session->get('QuickSearchLastResults');
+                if($data) {
+                    $array = unserialize($data);
+                    $al = ArrayList::create();
+                    foreach($array as $item) {
+                        $al->push($item);
+                    }
+                    return $al;
+                }
+            }
+        }
+        return null;
     }
 }

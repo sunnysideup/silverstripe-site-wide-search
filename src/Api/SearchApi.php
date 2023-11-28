@@ -491,7 +491,8 @@ class SearchApi
                             'HasCMSEditLink' => (bool) $cmsEditLink,
                             'Link' => $link,
                             'CMSEditLink' => $cmsEditLink,
-                            'Object' => $item,
+                            'Title' => $item->getTitle(),
+                            'SingularName' => $item->i18n_singular_name(),
                             'SiteWideSearchSortValue' => $this->getSortValue($item),
                             'CMSThumbnail' => DBField::create_field('HTMLText', $finder->getCMSThumbnail($item)),
                         ]

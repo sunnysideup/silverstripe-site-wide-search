@@ -37,10 +37,10 @@
     vertical-align: middle;
 }
 .search-results-for-site-wide-search a:hover {
-    background: orangered;
+    background: #008a00;
     color: white;
     text-decoration: none;
-    border: 1px solid red;
+    border: 1px solid #008a00;
 }
 
 

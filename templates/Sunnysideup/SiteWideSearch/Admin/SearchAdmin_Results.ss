@@ -5,7 +5,7 @@
         <% if $HasCMSEditLink %>
         <li>
             <a href="$CMSEditLink" class="edit-from-quick-search">✎</a>
-            <strong>$Object.i18n_singular_name:</strong> $Object.Title
+            <strong>$SingularName:</strong> $Title
             <% if CMSThumbnail %>$CMSThumbnail<% end_if %>
         </li>
         <% end_if %>
@@ -15,13 +15,13 @@
         <li>
             <% if CMSThumbnail %>$CMSThumbnail<% end_if %>
             <% if $HasCMSEditLink %>
-            <a href="$CMSEditLink" class="edit-from-quick-search">✎</a>
+            <a href="$CMSEditLink" class="edit-from-quick-search" target="_edit">✎</a>
             <% else %>
             <a class="edit-from-quick-search disabled">&nbsp;</a>
             <% end_if %>
             —
-            <a <% if $HasLink %>href="$Link"<% else %>class="disabled"<% end_if %> target="new">
-                $Object.Title ($Object.i18n_singular_name)
+            <a <% if $HasLink %>href="$Link"<% else %>class="disabled"<% end_if %> target="_new">
+                $Title ($SingularName)
             </a>
         </li>
         <% end_loop %>
