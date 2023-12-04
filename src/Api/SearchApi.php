@@ -337,6 +337,7 @@ class SearchApi
 
         if (count($this->words)) {
             foreach ($this->getAllDataObjects() as $className) {
+
                 if ($this->debug) {
                     DB::alteration_message(' ... Searching in ' . $className);
                 }
@@ -344,6 +345,7 @@ class SearchApi
                     continue;
                 }
                 if (!in_array($className, $this->excludedClasses, true)) {
+
                     $array[$className] = [];
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
@@ -352,7 +354,7 @@ class SearchApi
                             continue;
                         }
 
-                        if (!in_array($field, $this->excludedFields, true)) {
+                        if (!in_array($field, $this->excludedFields, true) || in_array($field, $this->includedFields, true)) {
                             if ($this->debug) {
                                 DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
                             }
@@ -648,7 +650,7 @@ class SearchApi
     {
         if (!isset($this->cache['AllValidFields'][$className])) {
             $array = [];
-            $fullList = Config::inst()->get($className, 'db');
+            $fullList = Config::inst()->get($className, 'db') + ['ID' => 'Int', 'Created' => 'DBDatetime', 'LastEdited' => 'DBDatetime', 'ClassName' => 'Varchar'];
             if (is_array($fullList)) {
                 if ($this->isQuickSearch) {
                     $fullList = $this->getIndexedFields(
@@ -656,11 +658,16 @@ class SearchApi
                         $fullList
                     );
                 }
-
                 foreach ($fullList as $name => $type) {
                     if ($this->isValidFieldType($className, $name, $type)) {
                         $array[] = $name;
+                    } elseif(in_array($name, $this->includedFields, true)) {
+                        if(in_array($name, $fullList, true)) {
+                            user_error('Field ' . $name . ' is both included and excluded');
+                        }
+                        $array[] = $name;
                     }
+
                 }
             }
 
@@ -711,7 +718,7 @@ class SearchApi
             $this->cache['ValidFieldTypes'][$type] = false;
             $singleton = Injector::inst()->get($className);
             $field = $singleton->dbObject($fieldName);
-            if ($field instanceof DBString) {
+            if ($fieldName !== 'ClassName' && $field instanceof DBString) {
                 $this->cache['ValidFieldTypes'][$type] = true;
             }
         }
