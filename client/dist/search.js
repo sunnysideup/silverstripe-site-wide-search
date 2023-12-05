@@ -46,14 +46,15 @@ document.addEventListener('DOMContentLoaded', () => {
         console.log('adding keyup event listener')
         input.addEventListener('keyup', function (event) {
           var keywords = this.value.trim()
-          if (keywords === '') {
+          console.log('keywords', keywords.length)
+          if (keywords.length < 2) {
             button.style.display = 'block'
           } else {
             button.style.display = 'none'
           }
           if (event.key === 'Enter') {
             event.preventDefault() // Prevents the default form submit on Enter press
-            if (keywords === '') {
+            if (keywords.length < 2) {
               window.location.href = '/admin/find/'
             } else {
               this.form.submit()
