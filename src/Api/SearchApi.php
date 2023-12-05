@@ -3,9 +3,8 @@
 namespace Sunnysideup\SiteWideSearch\Api;
 
 use SilverStripe\Core\ClassInfo;
-use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
-use SilverStripe\Core\Environment;
+use SilverStripe\Core\Convert;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
@@ -14,18 +13,16 @@ use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
 use SilverStripe\ORM\FieldType\DBField;
-use SilverStripe\ORM\FieldType\DBString;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\Security\RememberLoginHash;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\Versioned;
-use SilverStripe\Versioned\ReadingMode;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\View\ArrayData;
 
 use SilverStripe\SessionManager\Models\LoginSession;
-use Sunnysideup\SiteWideSearch\Helpers\Cache;
+use Sunnysideup\SiteWideSearch\Helpers\FindClassesAndFields;
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
 
 class SearchApi
@@ -34,10 +31,7 @@ class SearchApi
     use Configurable;
     use Injectable;
 
-    /**
-     * @var string
-     */
-    private const CACHE_NAME = 'SearchApi';
+
 
     protected $debug = false;
 
@@ -65,42 +59,6 @@ class SearchApi
 
     protected $replace = '';
 
-    /**
-     * format is as follows:
-     * ```php
-     *      [
-     *          'AllDataObjects' => [
-     *              'BaseClassUsed' => [
-     *                  0 => ClassNameA,
-     *                  1 => ClassNameB,
-     *              ],
-     *          ],
-     *          'AllValidFields' => [
-     *              'ClassNameA' => [
-     *                  'FieldA' => 'FieldA'
-     *              ],
-     *          ],
-     *          'IndexedFields' => [
-     *              'ClassNameA' => [
-     *                  0 => ClassNameA,
-     *                  1 => ClassNameB,
-     *              ],
-     *          ],
-     *          'ListOfTextClasses' => [
-     *              0 => ClassNameA,
-     *              1 => ClassNameB,
-     *          ],
-     *          'ValidFieldTypes' => [
-     *              'Varchar(30)' => true,
-     *              'Boolean' => false,
-     *          ],
-     *     ],
-     * ```
-     * we use true rather than false to be able to use empty to work out if it has been tested before.
-     *
-     * @var array
-     */
-    protected $cache = [];
 
     private $objects = [];
 
@@ -139,23 +97,28 @@ class SearchApi
         return $this;
     }
 
-    public function setQuickSearchType(string $s): SearchApi
+    protected function getCache()
     {
-        if($s === 'all') {
+        return FindClassesAndFields::inst($this->baseClass);
+    }
+
+    public function setQuickSearchType(string $nameOrType): SearchApi
+    {
+        if($nameOrType === 'all') {
             $this->isQuickSearch = false;
             $this->quickSearchType = '';
-        } elseif($s === 'limited') {
+        } elseif($nameOrType === 'limited') {
             $this->isQuickSearch = true;
             $this->quickSearchType = '';
-        } elseif(class_exists($s)) {
-            $this->quickSearchType = $s;
-            $object = Injector::inst()->get($s);
+        } elseif(class_exists($nameOrType)) {
+            $this->quickSearchType = $nameOrType;
+            $object = Injector::inst()->get($nameOrType);
             $this->setIncludedClasses($object->getClassesToSearch());
             $this->setIncludedFields($object->getFieldsToSearch());
             $this->setIncludedClassFieldCombos($object->getIncludedClassFieldCombos());
             $this->setSortOverride($object->getSortOverride());
         } else {
-            user_error('QuickSearchType must be either "all" or "limited" or a defined quick search class. Provided was: ' . $s);
+            user_error('QuickSearchType must be either "all" or "limited" or a defined quick search class. Provided was: ' . $nameOrType);
         }
 
         return $this;
@@ -177,7 +140,9 @@ class SearchApi
 
     public function setBaseClass(string $class): SearchApi
     {
-        $this->baseClass = $class;
+        if(class_exists($class)) {
+            $this->baseClass = $class;
+        }
 
         return $this;
     }
@@ -244,24 +209,6 @@ class SearchApi
         return $this;
     }
 
-    public function getFileCache()
-    {
-        return Injector::inst()->get(Cache::class);
-    }
-
-    public function initCache(): self
-    {
-        $this->cache = $this->getFileCache()->getCacheValues(self::CACHE_NAME . '_' . $this->quickSearchType);
-
-        return $this;
-    }
-
-    public function saveCache(): self
-    {
-        $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->quickSearchType, $this->cache);
-
-        return $this;
-    }
 
     // public function __construct()
     // {
@@ -303,18 +250,26 @@ class SearchApi
         $this->initCache();
         $count = 0;
         // we should have these already.
-        foreach ($this->objects as $item) {
-            if ($item->canEdit()) {
-                $fields = $this->getAllValidFields($item->ClassName);
-                foreach ($fields as $field) {
-                    $new = str_replace($word, $replace, $item->{$field});
-                    if ($new !== $item->{$field}) {
-                        ++$count;
-                        $item->{$field} = $new;
-                        $this->writeAndPublishIfAppropriate($item);
+        $word = $this->securityCheckInput($word);
+        if($word) {
+            // important to do this first
+            foreach ($this->objects as $item) {
+                $className = $item->ClassName;
+                if ($item->canEdit()) {
+                    $fields = $this->getAllValidFields($className);
+                    foreach ($fields as $field) {
+                        if(!$this->includeField($className, $field)) {
+                            continue;
+                        }
+                        $new = str_replace($word, $replace, $item->{$field});
+                        if ($new !== $item->{$field}) {
+                            ++$count;
+                            $item->{$field} = $new;
+                            $this->writeAndPublishIfAppropriate($item);
 
-                        if ($this->debug) {
-                            DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
+                            if ($this->debug) {
+                                DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
+                            }
                         }
                     }
                 }
@@ -323,6 +278,22 @@ class SearchApi
 
         return $count;
     }
+
+    protected function saveCache(): self
+    {
+        $this->getCache()->saveCache();
+
+        return $this;
+    }
+
+
+    protected function initCache(): self
+    {
+        $this->getCache()->initCache();
+
+        return $this;
+    }
+
 
     protected function writeAndPublishIfAppropriate($item)
     {
@@ -350,6 +321,10 @@ class SearchApi
             $startOuter = microtime(true);
         }
         $this->workOutInclusionsAndExclusions();
+
+        // important to do this first
+        $word = $this->securityCheckInput($word);
+
         $this->workOutWords($word);
         if ($this->debug) {
             DB::alteration_message('Words searched for ' . implode(', ', $this->words));
@@ -360,55 +335,40 @@ class SearchApi
         if (count($this->words)) {
             foreach ($this->getAllDataObjects() as $className) {
 
-                if ($this->debug) {
-                    DB::alteration_message(' ... Searching in ' . $className);
-                }
-                if(count($this->includedClasses) && !in_array($className, $this->includedClasses, true)) {
+                if(!$this->includeClassName($className)) {
                     continue;
                 }
-                if (!in_array($className, $this->excludedClasses, true)) {
 
-                    $array[$className] = [];
-                    $fields = $this->getAllValidFields($className);
-                    $filterAny = [];
-                    foreach ($fields as $field) {
-                        if(isset($this->includedClassFieldCombos[$className][$field])) {
-                            // all good
-                        } elseif(in_array($field, $this->includedFields, true)) {
-                            // all good
-                        } elseif (!in_array($field, $this->excludedFields, true)) {
-                            // all good
-                        } else {
-                            continue;
-                        }
-                        $filterAny[$field . ':PartialMatch'] = $this->words;
-                        if ($this->debug) {
-                            DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
-                        }
+                $array[$className] = [];
+                $fields = $this->getAllValidFields($className);
+                $filterAny = [];
+                foreach ($fields as $field) {
+                    if(!$this->includeField($className, $field)) {
+                        continue;
                     }
-                    if ([] !== $filterAny) {
-                        if ($this->debug) {
-                            $startInner = microtime(true);
-                            DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
-                        }
-                        $array[$className] = $className::get()
-                            ->filterAny($filterAny)
-                            ->limit($this->Config()->get('limit_of_count_per_data_object'))
-                            ->column('ID')
-                        ;
-                        if ($this->debug) {
-                            $elaps = microtime(true) - $startInner;
-                            DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
-                        }
-                    }
-
+                    $filterAny[$field . ':PartialMatch'] = $this->words;
                     if ($this->debug) {
-                        DB::alteration_message(' ... No fields in ' . $className);
+                        DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
+                    }
+                }
+                if ([] !== $filterAny) {
+                    if ($this->debug) {
+                        $startInner = microtime(true);
+                        DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
+                    }
+                    $array[$className] = $className::get()
+                        ->filterAny($filterAny)
+                        ->limit($this->Config()->get('limit_of_count_per_data_object'))
+                        ->column('ID')
+                    ;
+                    if ($this->debug) {
+                        $elaps = microtime(true) - $startInner;
+                        DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
                     }
                 }
 
                 if ($this->debug) {
-                    DB::alteration_message(' ... Skipping ' . $className);
+                    DB::alteration_message(' ... No fields in ' . $className);
                 }
             }
         } else {
@@ -435,10 +395,7 @@ class SearchApi
         $array = [];
         $classNames = $this->getAllDataObjects();
         foreach ($classNames as $className) {
-            if(count($this->includedClasses) && !in_array($className, $this->includedClasses, true)) {
-                continue;
-            }
-            if (!in_array($className, $this->excludedClasses, true)) {
+            if($this->includeClassName($className)) {
                 $array[$className] = $className::get()
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
                     ->sort(['LastEdited' => 'DESC'])
@@ -516,6 +473,7 @@ class SearchApi
                             'Link' => $link,
                             'CMSEditLink' => $cmsEditLink,
                             'ID' => $item->ID,
+                            'LastEdited' => $item->LastEdited,
                             'Title' => $item->getTitle(),
                             'SingularName' => $item->i18n_singular_name(),
                             'SiteWideSearchSortValue' => $this->getSortValue($item),
@@ -525,8 +483,8 @@ class SearchApi
                 );
             }
         }
-
         $finder->saveCache();
+
         if(!empty($this->sortOverride)) {
             return $list->sort($this->sortOverride);
         } else {
@@ -615,18 +573,21 @@ class SearchApi
                 $this->excludedClasses
             )
         );
-        $this->excludedFields = array_unique(
-            array_merge(
-                $this->Config()->get('default_exclude_fields'),
-                $this->excludedFields
-            )
-        );
+        $this->excludedClasses = $this->includeSubClasses($this->excludedClasses);
         $this->includedClasses = array_unique(
             array_merge(
                 $this->Config()->get('default_include_classes'),
                 $this->includedClasses
             )
         );
+        $this->includedClasses = $this->includeSubClasses($this->includedClasses);
+        $this->excludedFields = array_unique(
+            array_merge(
+                $this->Config()->get('default_exclude_fields'),
+                $this->excludedFields
+            )
+        );
+
         $this->includedFields = array_unique(
             array_merge(
                 $this->Config()->get('default_include_fields'),
@@ -664,95 +625,67 @@ class SearchApi
 
     protected function getAllDataObjects(): array
     {
-        if ($this->debug) {
-            DB::alteration_message('Base Class: ' . $this->baseClass);
-        }
-
-        if (!isset($this->cache['AllDataObjects'][$this->baseClass])) {
-            $this->cache['AllDataObjects'][$this->baseClass] = array_values(
-                ClassInfo::subclassesFor($this->baseClass, false)
-            );
-            $this->cache['AllDataObjects'][$this->baseClass] = array_unique($this->cache['AllDataObjects'][$this->baseClass]);
-        }
-
-        return $this->cache['AllDataObjects'][$this->baseClass];
+        return $this->getCache()->getAllDataObjects();
     }
 
     protected function getAllValidFields(string $className): array
     {
-        if (!isset($this->cache['AllValidFields'][$className])) {
-            $array = [];
-            $fullList = Config::inst()->get($className, 'db') + ['ID' => 'Int', 'Created' => 'DBDatetime', 'LastEdited' => 'DBDatetime', 'ClassName' => 'Varchar'];
-            if ($this->isQuickSearch) {
-                $fullList = $this->getIndexedFields(
-                    $className,
-                    $fullList
-                );
+        $fields = $this->getCache()->getAllValidFields($className, $this->isQuickSearch, $this->includedFields);
+        if(isset($this->includedClassFieldCombos[$className])) {
+            foreach($this->includedClassFieldCombos[$className] as $name => $type) {
+                $fields[] = $name;
             }
-            foreach ($fullList as $name => $type) {
-                if ($this->isValidFieldType($className, $name, $type)) {
-                    $array[] = $name;
-                } elseif(in_array($name, $this->includedFields, true)) {
-                    $array[] = $name;
-                }
-            }
-            if(isset($this->includedClassFieldCombos[$className])) {
-                foreach($this->includedClassFieldCombos[$className] as $name => $type) {
-                    $array[] = $name;
-                }
-            }
-            $this->cache['AllValidFields'][$className] = $array;
         }
-
-        return $this->cache['AllValidFields'][$className];
+        return array_unique($fields);
     }
 
-    protected function getIndexedFields(string $className, array $dbFields): array
-    {
-        if (!isset($this->cache['IndexedFields'][$className])) {
-            $this->cache['IndexedFields'][$className] = [];
-            $indexes = Config::inst()->get($className, 'indexes');
-            if (is_array($indexes)) {
-                foreach ($indexes as $key => $field) {
-                    if (isset($dbFields[$key])) {
-                        $this->cache['IndexedFields'][$className][$key] = $dbFields[$key];
-                    } elseif (is_array($field)) {
-                        foreach ($field as $test) {
-                            if (is_array($test)) {
-                                if (isset($test['columns'])) {
-                                    $test = $test['columns'];
-                                } else {
-                                    continue;
-                                }
-                            }
 
-                            $testArray = explode(',', $test);
-                            foreach ($testArray as $testInner) {
-                                $testInner = trim($testInner);
-                                if (isset($dbFields[$testInner])) {
-                                    $this->cache['IndexedFields'][$className][$testInner] = $dbFields[$key];
-                                }
-                            }
-                        }
-                    }
-                }
+    protected function includeClassName(string $className): bool
+    {
+        if(count($this->excludedClasses) && in_array($className, $this->excludedClasses, true)) {
+            if ($this->debug) {
+                DB::alteration_message(' ... Skipping as excluded ' . $className);
             }
+            return false;
+        }
+        if(count($this->includedClasses) && !in_array($className, $this->includedClasses, true)) {
+            if ($this->debug) {
+                DB::alteration_message(' ... Skipping as not included ' . $className);
+            }
+            return false;
+        }
+        if ($this->debug) {
+            DB::alteration_message(' ... including ' . $className);
         }
 
-        return $this->cache['IndexedFields'][$className];
+        return true;
     }
 
-    protected function isValidFieldType(string $className, string $fieldName, string $type): bool
+    protected function includeField(string $className, string $field): bool
     {
-        if (!isset($this->cache['ValidFieldTypes'][$type])) {
-            $this->cache['ValidFieldTypes'][$type] = false;
-            $singleton = Injector::inst()->get($className);
-            $field = $singleton->dbObject($fieldName);
-            if ($fieldName !== 'ClassName' && $field instanceof DBString) {
-                $this->cache['ValidFieldTypes'][$type] = true;
-            }
+        if(isset($this->includedClassFieldCombos[$className][$field])) {
+            return true;
+        } elseif(in_array($field, $this->includedFields, true)) {
+            return true;
+        } elseif (!in_array($field, $this->excludedFields, true)) {
+            return true;
+        } else {
+            false;
         }
+    }
 
-        return $this->cache['ValidFieldTypes'][$type];
+    protected function includeSubClasses(array $classes): array
+    {
+        $toAdd = [];
+        foreach($classes as $class) {
+            $toAdd = array_merge($toAdd, ClassInfo::subclassesFor($class, false));
+        }
+        return array_unique(array_merge($classes, $toAdd));
+    }
+
+    protected function securityCheckInput(string $word): string
+    {
+        $word = trim($word);
+        return Convert::raw2sql($word);
     }
 }

@@ -260,8 +260,7 @@ class FindEditableObjects
                     } elseif ($rels instanceof UnsavedRelationList) {
                         //do nothing;
                     } else {
-                        print_r($rels);
-                        user_error('Unexpected Relationship');
+                        user_error('Unexpected Relationship: ' . print_r($rels, 1));
                         die('');
                     }
                 }
@@ -304,6 +303,12 @@ class FindEditableObjects
         return $this->cache['validMethods'][$type];
     }
 
+    /**
+     * it either is NOT in the excluded list or it is in the included list.
+     *
+     * @param string $dataObjectClassName
+     * @return boolean
+     */
     protected function classCanBeIncluded(string $dataObjectClassName): bool
     {
         if(count($this->excludedClasses) || count($this->includedClasses)) {

@@ -39,13 +39,13 @@ class SiteWideSearch extends BuildTask
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
         $debug = $request->postVar('debug') ? 'checked="checked"' : '';
-        $word = Convert::raw2sql($request->requestVar('word'));
-        if (! is_string($word)) {
+        $word = $request->requestVar('word');
+        if (!is_string($word)) {
             $word = '';
         }
 
-        $replace = Convert::raw2sql($request->requestVar('replace'));
-        if (! is_string($replace)) {
+        $replace = $request->requestVar('replace');
+        if (!is_string($replace)) {
             $replace = '';
         }
 
