@@ -52,6 +52,26 @@
     height: 30px;
     font-size: 1.2rem;
     padding: 0 5px;
-    border: 1px solid #ccc;
+    border: 1px solid rgba(206,213,225,.5);
     border-radius: 3px;
+}
+.sunny-side-up-quick-search-form .left-search-button {
+    position: absolute;
+    right: 0;
+    margin-right: 10px;
+    height: 24px;
+    width: 24px;
+    margin-top: 3px;
+    border-radius: 50%;
+    background: transparent;
+    font-size: 10px;
+    border: 1px solid rgba(206,213,225, 1);
+    opacity: 0.5;
+}
+.sunny-side-up-quick-search-form .left-search-button:hover {
+    background: #008a00;
+    color: white;
+    text-decoration: none;
+    border: 1px solid #008a00;
+    opacity: 1;
 }

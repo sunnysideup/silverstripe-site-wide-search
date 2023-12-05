@@ -18,36 +18,45 @@ document.addEventListener('DOMContentLoaded', () => {
       input.setAttribute('type', 'text')
       input.setAttribute('name', 'Keywords')
       input.setAttribute('placeholder', 'Search...')
-      input.setAttribute('id', '')
+      input.setAttribute('id', inputId)
 
       const hiddenInput = document.createElement('input')
       hiddenInput.setAttribute('type', 'hidden')
       hiddenInput.setAttribute('name', 'SecurityID')
       hiddenInput.setAttribute('value', securityID)
-      hiddenInput.setAttribute('class', inputId)
       // hiddenInput.setAttribute('id', 'Form_EditForm_SecurityID')
+
+      const button = document.createElement('button')
+      button.innerHTML = '&#128269;'
+      button.setAttribute('class', 'left-search-button')
+      button.onclick = () => (window.location.href = '/admin/find')
 
       while (targetElement.firstChild) {
         targetElement.removeChild(targetElement.firstChild)
       }
+
       form.appendChild(input)
       form.appendChild(hiddenInput)
+      form.appendChild(button)
       form.classList.add('sunny-side-up-quick-search-form')
       holder.appendChild(form)
       targetElement.appendChild(holder)
-      const newInput = document.getElementById(inputId)
-      if (newInput) {
-        newInput.addEventListener('keyup', function (event) {
+
+      if (input) {
+        console.log('adding keyup event listener')
+        input.addEventListener('keyup', function (event) {
+          var keywords = this.value.trim()
+          if (keywords === '') {
+            button.style.display = 'block'
+          } else {
+            button.style.display = 'none'
+          }
           if (event.key === 'Enter') {
-            console.log('Enter key pressed')
             event.preventDefault() // Prevents the default form submit on Enter press
-
-            var keywords = this.value.trim()
-
             if (keywords === '') {
-              window.location.href = '/admin/find/' // Redirects if the input is empty
+              window.location.href = '/admin/find/'
             } else {
-              this.form.submit() // Submits the form if the input has values
+              this.form.submit()
             }
           }
         })
