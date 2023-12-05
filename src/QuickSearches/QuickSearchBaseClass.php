@@ -76,7 +76,7 @@ abstract class QuickSearchBaseClass
                 }
             }
         }
-        $array['all'] = 'All (careful - may result in memory and time out issues)';
+        $array['all'] = 'All (careful - may result in memory and time-out issues)';
         return $array;
 
     }
