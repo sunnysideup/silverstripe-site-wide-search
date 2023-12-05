@@ -57,6 +57,8 @@ class SearchApi
 
     protected $includedFields = [];
 
+    protected $sortOverride = null;
+
     protected $words = [];
 
     protected $replace = '';
@@ -146,6 +148,7 @@ class SearchApi
             $object = Injector::inst()->get($s);
             $this->setIncludedClasses($object->getClassesToSearch());
             $this->setIncludedFields($object->getFieldsToSearch());
+            $this->setSortOverride($object->getSortOverride());
         } else {
             user_error('QuickSearchType must be either "all" or "limited" or a defined quick search class. Provided was: ' . $s);
         }
@@ -197,6 +200,13 @@ class SearchApi
     public function setIncludedFields(array $a): SearchApi
     {
         $this->includedFields = $a;
+
+        return $this;
+    }
+
+    public function setSortOverride(?array $a = null): SearchApi
+    {
+        $this->sortOverride = $a;
 
         return $this;
     }
@@ -493,6 +503,7 @@ class SearchApi
                             'HasCMSEditLink' => (bool) $cmsEditLink,
                             'Link' => $link,
                             'CMSEditLink' => $cmsEditLink,
+                            'ID' => $item->ID,
                             'Title' => $item->getTitle(),
                             'SingularName' => $item->i18n_singular_name(),
                             'SiteWideSearchSortValue' => $this->getSortValue($item),
@@ -504,8 +515,11 @@ class SearchApi
         }
 
         $finder->saveCache();
-
-        return $list->sort(['SiteWideSearchSortValue' => 'ASC']);
+        if(!empty($this->sortOverride)) {
+            return $list->sort($this->sortOverride);
+        } else {
+            return $list->sort(['SiteWideSearchSortValue' => 'ASC']);
+        }
     }
 
     protected function getSortValue($item)

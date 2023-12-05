@@ -25,6 +25,10 @@ abstract class QuickSearchBaseClass
     abstract public function getTitle(): string;
     abstract public function getClassesToSearch(): array;
     abstract public function getFieldsToSearch(): array;
+    public function getSortOverride(): ?array
+    {
+        return null;
+    }
     public static function get_list_of_quick_searches(): array
     {
         $array = [
