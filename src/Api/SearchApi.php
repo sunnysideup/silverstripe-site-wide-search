@@ -372,27 +372,25 @@ class SearchApi
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
                     foreach ($fields as $field) {
-                        if(count($this->includedClassFieldCombos) && isset($this->includedClassFieldCombos[$className][$field])) {
+                        if(isset($this->includedClassFieldCombos[$className][$field])) {
                             // all good
-                        } elseif(count($this->includedFields) && in_array($field, $this->includedFields, true)) {
+                        } elseif(in_array($field, $this->includedFields, true)) {
                             // all good
                         } elseif (!in_array($field, $this->excludedFields, true)) {
                             // all good
                         } else {
                             continue;
                         }
+                        $filterAny[$field . ':PartialMatch'] = $this->words;
+                        if ($this->debug) {
+                            DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
+                        }
                     }
-                    if ($this->debug) {
-                        DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
-                    }
-                    $filterAny[$field . ':PartialMatch'] = $this->words;
-
                     if ([] !== $filterAny) {
                         if ($this->debug) {
                             $startInner = microtime(true);
                             DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
                         }
-
                         $array[$className] = $className::get()
                             ->filterAny($filterAny)
                             ->limit($this->Config()->get('limit_of_count_per_data_object'))
@@ -690,8 +688,6 @@ class SearchApi
                     $className,
                     $fullList
                 );
-            } else {
-                $fullList = Config::inst()->get($className, 'db') + ['ID' => 'Int', 'Created' => 'DBDatetime', 'LastEdited' => 'DBDatetime', 'ClassName' => 'Varchar'];
             }
             foreach ($fullList as $name => $type) {
                 if ($this->isValidFieldType($className, $name, $type)) {
