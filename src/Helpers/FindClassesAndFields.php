@@ -114,7 +114,7 @@ class FindClassesAndFields
         return $this->cache['AllDataObjects'][$this->baseClass];
     }
 
-    public function getAllValidFields(string $className, ?bool $isQuickSearch = false, ?array $includedFields = []): array
+    public function getAllValidFields(string $className, ?bool $isQuickSearch = false, ?array $includedFields = [], ?array $includedClassFieldCombos = []): array
     {
         if (!isset($this->cache['AllValidFields'][$className])) {
             $this->cache['AllValidFields'][$className] = Config::inst()->get($className, 'db') ?? [];
@@ -132,6 +132,12 @@ class FindClassesAndFields
                 $array[] = $name;
             }
         }
+        if(isset($includedClassFieldCombos[$className])) {
+            foreach($includedClassFieldCombos[$className] as $name) {
+                $array[] = $name;
+            }
+        }
+        // print_r($array);
         if ($isQuickSearch === false) {
             return $array;
         }

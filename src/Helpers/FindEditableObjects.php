@@ -27,7 +27,6 @@ class FindEditableObjects
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
-    protected $includedClasses = [];
 
     /**
      * format is as follows:
@@ -131,13 +130,6 @@ class FindEditableObjects
     public function setExcludedClasses(array $excludedClasses): self
     {
         $this->excludedClasses = $excludedClasses;
-
-        return $this;
-    }
-
-    public function setIncludedClasses(array $includedClasses): self
-    {
-        $this->includedClasses = $includedClasses;
 
         return $this;
     }
@@ -311,17 +303,13 @@ class FindEditableObjects
      */
     protected function classCanBeIncluded(string $dataObjectClassName): bool
     {
-        if(count($this->excludedClasses) || count($this->includedClasses)) {
+        if(count($this->excludedClasses)) {
             if(!class_exists($dataObjectClassName)) {
                 return false;
             }
-            if (count($this->includedClasses)) {
-                return in_array($dataObjectClassName, $this->includedClasses, true);
-            }
-
             return !in_array($dataObjectClassName, $this->excludedClasses, true);
         }
-        user_error('Please set either excludedClasses or includedClasses', E_USER_NOTICE);
+        user_error('Please set excludedClasses', E_USER_NOTICE);
         return false;
     }
 }

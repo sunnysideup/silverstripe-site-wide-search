@@ -35,7 +35,8 @@ abstract class QuickSearchBaseClass
      * ```php
      * [
      *     'ClassName' => [
-     *          'MyRelation.Title' => 'Varchar',
+     *          'MyRelation.Title',
+     *          'MyOtherRelation.Title',
      *      ]
      *
      * ]
@@ -43,6 +44,21 @@ abstract class QuickSearchBaseClass
      * @return array
      */
     public function getIncludedClassFieldCombos(): array
+    {
+        return [];
+    }
+
+    /**
+     * Should return it like this:
+     * ```php
+     * [
+     *     'MyClass' => MyClass::get()->filter(['MyField' => 'MyValue']),
+     *
+     * ]
+     * ```
+     * @return array
+     */
+    public function getDefaultLists(): array
     {
         return [];
     }
@@ -60,7 +76,7 @@ abstract class QuickSearchBaseClass
                 }
             }
         }
-        $array['all'] = 'All';
+        $array['all'] = 'All (careful - may result in memory and time out issues)';
         return $array;
 
     }
