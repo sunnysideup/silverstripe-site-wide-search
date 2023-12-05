@@ -206,21 +206,8 @@ class SearchApi
 
     public function setWordsAsString(string $s): SearchApi
     {
+        $s = $this->securityCheckInput($s);
         $this->words = explode(' ', $s);
-
-        return $this;
-    }
-
-    public function setWords(array $a): SearchApi
-    {
-        $this->words = array_combine($a, $a);
-
-        return $this;
-    }
-
-    public function addWord(string $s): SearchApi
-    {
-        $this->words[$s] = $s;
 
         return $this;
     }
@@ -265,10 +252,9 @@ class SearchApi
     {
         $this->initCache();
         $count = 0;
-        // we should have these already.
-        $word = $this->securityCheckInput($word);
         if($word) {
-            // important to do this first
+            $this->buildCache($word);
+            $replace = $this->securityCheckInput($replace);
             foreach ($this->objects as $item) {
                 $className = $item->ClassName;
                 if ($item->canEdit()) {
@@ -339,11 +325,12 @@ class SearchApi
         $this->workOutInclusionsAndExclusions();
 
         // important to do this first
-        $word = $this->securityCheckInput($word);
-
-        $this->workOutWords($word);
+        if($word) {
+            $this->setWordsAsString($word);
+        }
+        $this->workOutWordsForSearching();
         if ($this->debug) {
-            DB::alteration_message('Words searched for ' . implode(', ', $this->words));
+            DB::alteration_message('Words searched for ' . print_r($this->words, 1));
         }
 
         $array = [];
@@ -642,25 +629,21 @@ class SearchApi
         );
     }
 
-    protected function workOutWords(string $word = ''): array
+    protected function workOutWordsForSearching()
     {
         if ($this->searchWholePhrase) {
             $this->words = [implode(' ', $this->words)];
-        }
-
-        if ($word) {
-            $this->words[] = $word;
         }
 
         if (!count($this->words)) {
             user_error('No word has been provided');
         }
 
+        $this->words = array_map('trim', $this->words);
+        $this->words = array_map('strtolower', $this->words);
         $this->words = array_unique($this->words);
         $this->words = array_filter($this->words);
-        $this->words = array_map('strtolower', $this->words);
 
-        return $this->words;
     }
 
     protected function getAllDataObjects(): array

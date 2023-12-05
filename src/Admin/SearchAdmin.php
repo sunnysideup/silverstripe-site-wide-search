@@ -36,7 +36,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected $quickSearchType = '';
 
-    protected $searchWholePhrase = false;
+    protected $searchWholePhrase = true;
 
     protected $rawData;
 
@@ -194,7 +194,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         if ($this->applyReplace) {
             Injector::inst()->get(SearchApi::class)
                 ->setQuickSearchType($this->quickSearchType)
-                ->setSearchWholePhrase(true)
+                ->setSearchWholePhrase(true) // always true
                 ->setWordsAsString($this->keywords)
                 ->buildCache() // make sure we have the lastest cache!
                 ->doReplacement($this->keywords, $this->replace)
