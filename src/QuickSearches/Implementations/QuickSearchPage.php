@@ -15,7 +15,9 @@ class QuickSearchPage extends QuickSearchBaseClass
     }
     public function getClassesToSearch(): array
     {
-        return ClassInfo::subclassesFor(SiteTree::class, false);
+        return [
+            SiteTree::class,
+        ];
     }
     public function getFieldsToSearch(): array
     {

@@ -15,7 +15,9 @@ class QuickSearchFile extends QuickSearchBaseClass
     }
     public function getClassesToSearch(): array
     {
-        return ClassInfo::subclassesFor(File::class, false);
+        return [
+            File::class,
+        ];
     }
     public function getFieldsToSearch(): array
     {

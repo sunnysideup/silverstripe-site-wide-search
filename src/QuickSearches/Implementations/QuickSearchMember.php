@@ -15,7 +15,9 @@ class QuickSearchMember extends QuickSearchBaseClass
     }
     public function getClassesToSearch(): array
     {
-        return ClassInfo::subclassesFor(Member::class, false);
+        return [
+            Member::class,
+        ];
     }
     public function getFieldsToSearch(): array
     {

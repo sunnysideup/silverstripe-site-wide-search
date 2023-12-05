@@ -49,15 +49,18 @@ abstract class QuickSearchBaseClass
     public static function get_list_of_quick_searches(): array
     {
         $array = [
-            'all' => 'All',
             'limited' => 'Limited search',
         ];
         $availableSearchClasses = self::available_quick_searches();
         if(!empty($availableSearchClasses) > 0) {
             foreach($availableSearchClasses as $availableSearchClass) {
-                $array[$availableSearchClass] =  Injector::inst()->get($availableSearchClass)->getTitle();
+                $singleton = Injector::inst()->get($availableSearchClass);
+                if($singleton->isEnabled()) {
+                    $array[$availableSearchClass] = $singleton->getTitle();
+                }
             }
         }
+        $array['all'] = 'All';
         return $array;
 
     }
