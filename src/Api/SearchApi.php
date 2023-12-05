@@ -57,6 +57,8 @@ class SearchApi
 
     protected $includedFields = [];
 
+    protected $includedClassFieldCombos = [];
+
     protected $sortOverride = null;
 
     protected $words = [];
@@ -128,6 +130,8 @@ class SearchApi
 
     private static $default_include_fields = [];
 
+    private static $default_include_class_field_combos = [];
+
     public function setDebug(bool $b): SearchApi
     {
         $this->debug = $b;
@@ -148,6 +152,7 @@ class SearchApi
             $object = Injector::inst()->get($s);
             $this->setIncludedClasses($object->getClassesToSearch());
             $this->setIncludedFields($object->getFieldsToSearch());
+            $this->setIncludedClassFieldCombos($object->getIncludedClassFieldCombos());
             $this->setSortOverride($object->getSortOverride());
         } else {
             user_error('QuickSearchType must be either "all" or "limited" or a defined quick search class. Provided was: ' . $s);
@@ -200,6 +205,13 @@ class SearchApi
     public function setIncludedFields(array $a): SearchApi
     {
         $this->includedFields = $a;
+
+        return $this;
+    }
+
+    public function setIncludedClassFieldCombos(array $a): SearchApi
+    {
+        $this->includedClassFieldCombos = $a;
 
         return $this;
     }
@@ -360,18 +372,20 @@ class SearchApi
                     $fields = $this->getAllValidFields($className);
                     $filterAny = [];
                     foreach ($fields as $field) {
-                        if(count($this->includedFields) && !in_array($field, $this->includedFields, true)) {
+                        if(count($this->includedClassFieldCombos) && isset($this->includedClassFieldCombos[$className][$field])) {
+                            // all good
+                        } elseif(count($this->includedFields) && in_array($field, $this->includedFields, true)) {
+                            // all good
+                        } elseif (!in_array($field, $this->excludedFields, true)) {
+                            // all good
+                        } else {
                             continue;
                         }
-
-                        if (!in_array($field, $this->excludedFields, true) || in_array($field, $this->includedFields, true)) {
-                            if ($this->debug) {
-                                DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
-                            }
-
-                            $filterAny[$field . ':PartialMatch'] = $this->words;
-                        }
                     }
+                    if ($this->debug) {
+                        DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
+                    }
+                    $filterAny[$field . ':PartialMatch'] = $this->words;
 
                     if ([] !== $filterAny) {
                         if ($this->debug) {
@@ -621,6 +635,12 @@ class SearchApi
                 $this->includedFields
             )
         );
+        $this->includedClassFieldCombos = array_unique(
+            array_merge(
+                $this->Config()->get('default_include_class_field_combos'),
+                $this->includedClassFieldCombos
+            )
+        );
     }
 
     protected function workOutWords(string $word = ''): array
@@ -665,26 +685,26 @@ class SearchApi
         if (!isset($this->cache['AllValidFields'][$className])) {
             $array = [];
             $fullList = Config::inst()->get($className, 'db') + ['ID' => 'Int', 'Created' => 'DBDatetime', 'LastEdited' => 'DBDatetime', 'ClassName' => 'Varchar'];
-            if (is_array($fullList)) {
-                if ($this->isQuickSearch) {
-                    $fullList = $this->getIndexedFields(
-                        $className,
-                        $fullList
-                    );
-                }
-                foreach ($fullList as $name => $type) {
-                    if ($this->isValidFieldType($className, $name, $type)) {
-                        $array[] = $name;
-                    } elseif(in_array($name, $this->includedFields, true)) {
-                        if(in_array($name, $fullList, true)) {
-                            user_error('Field ' . $name . ' is both included and excluded');
-                        }
-                        $array[] = $name;
-                    }
-
+            if ($this->isQuickSearch) {
+                $fullList = $this->getIndexedFields(
+                    $className,
+                    $fullList
+                );
+            } else {
+                $fullList = Config::inst()->get($className, 'db') + ['ID' => 'Int', 'Created' => 'DBDatetime', 'LastEdited' => 'DBDatetime', 'ClassName' => 'Varchar'];
+            }
+            foreach ($fullList as $name => $type) {
+                if ($this->isValidFieldType($className, $name, $type)) {
+                    $array[] = $name;
+                } elseif(in_array($name, $this->includedFields, true)) {
+                    $array[] = $name;
                 }
             }
-
+            if(isset($this->includedClassFieldCombos[$className])) {
+                foreach($this->includedClassFieldCombos[$className] as $name => $type) {
+                    $array[] = $name;
+                }
+            }
             $this->cache['AllValidFields'][$className] = $array;
         }
 

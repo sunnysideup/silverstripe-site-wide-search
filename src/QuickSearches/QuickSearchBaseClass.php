@@ -29,6 +29,23 @@ abstract class QuickSearchBaseClass
     {
         return null;
     }
+
+    /**
+     * Should return it like this:
+     * ```php
+     * [
+     *     'ClassName' => [
+     *          'MyRelation.Title' => 'Varchar',
+     *      ]
+     *
+     * ]
+     * ```
+     * @return array
+     */
+    public function getIncludedClassFieldCombos(): array
+    {
+        return [];
+    }
     public static function get_list_of_quick_searches(): array
     {
         $array = [

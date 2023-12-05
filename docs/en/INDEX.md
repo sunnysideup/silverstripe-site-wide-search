@@ -78,3 +78,43 @@ class QuickSearchPage extends QuickSearchBaseClass
 }
 
 ```
+
+Here is another example:
+
+```php
+
+    public function getTitle(): string
+    {
+        return 'Orders ';
+    }
+    public function getClassesToSearch(): array
+    {
+        return [
+            Order::class,
+        ];
+    }
+    public function getFieldsToSearch(): array
+    {
+        return [
+            'ID',
+        ];
+
+    }
+
+    public function getIncludedClassFieldCombos(): array
+    {
+        return [
+            Order::class => [
+                'Member.Email' => 'Varchar',
+            ],
+        ];
+    }
+
+    public function getSortOverride(): array
+    {
+        return [
+            'ID' => 'DESC',
+        ];
+
+    }
+```
