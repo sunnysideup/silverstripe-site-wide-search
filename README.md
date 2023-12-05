@@ -1,22 +1,58 @@
+# Silverstripe Site Wide Search
 
+[![Build Status](https://travis-ci.org/sunnysideup/silverstripe-site-wide-search.svg?branch=master)](https://travis-ci.org/sunnysideup/silverstripe-site-wide-search)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/sunnysideup/silverstripe-site-wide-search/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/sunnysideup/silverstripe-site-wide-search/?branch=master)
+[![codecov.io](https://codecov.io/github/sunnysideup/silverstripe-site-wide-search/coverage.svg?branch=master)](https://codecov.io/github/sunnysideup/silverstripe-site-wide-search?branch=master)
 
-Use one of these two links to see if it works for you:
+[![Latest Stable Version](https://poser.pugx.org/sunnysideup/site-wide-search/version)](https://packagist.org/packages/sunnysideup/site-wide-search)
+[![License](https://poser.pugx.org/sunnysideup/site-wide-search/license)](https://packagist.org/packages/sunnysideup/site-wide-search)
+[![Monthly Downloads](https://poser.pugx.org/sunnysideup/site-wide-search/d/monthly)](https://packagist.org/packages/sunnysideup/site-wide-search)
 
- - `dev/tasks/Sunnysideup-SiteWideSearch-Tasks-SiteWideSearch`
- - `admin/find/`
+## Documentation
 
-If it does then you can build your own presentation layer using the API:
+- [Developer Docs](docs/en/INDEX.md)
+- [User Guide](docs/en/userguide.md)
+- [API Docs](http://docs.ssmods.com/sunnysideup/site-wide-search/classes.xhtml)
 
-```php
+## Requirements
 
-//use statements need to be added !
+See [composer.json](composer.json) for details
 
-$myLinks = Injector::inst()->get(SearchApi::class)
-    ->setBaseClass(DataObject::class)
-    ->setExcludedClasses([MyMemberDetails::class])
-    ->setExcludedFields(['SecretStuff'])
-    ->setIsQuickSearch(false)
-    ->setWords(['MyNiceWord', 'OtherWord'])
-    ->getLinks();
+### Suggested Modules
+
+See [composer.json](composer.json) for details
+
+## Installation
 
 ```
+composer require sunnysideup/site-wide-search
+```
+
+### Configuration
+
+In the `_config` folder you will find the `site-wide-search.yml.example`
+file that shows options for the configuration of this module.
+
+We recommend that you:
+
+1. copy these `site-wide-search.yml.example` files into your
+   `mysite/_config` folder (where available - otherwise search for `private static $` in the module to see what can be configured)
+2. remove the .example extension,
+3. delete the lines you do not care about, and
+4. adjust the configurations that you would like to use.
+
+## Contributing
+
+We welcome any contributions. See [CONTRIBUTING.md](CONTRIBUTING.md) for more details.
+
+## Paid assistance
+
+You can pay us to create an improved / adapted version of this module for your own projects. Please contact us if you like to find out more: [www.sunnysideup.co.nz](http://www.sunnysideup.co.nz). For exmaple, we can write tests for this module.
+
+## Author
+
+Sunny Side Up Ltd.
+
+## Care to see more modules?
+
+To find other modules, please visit [ssmods.com](http://ssmods.com/).
