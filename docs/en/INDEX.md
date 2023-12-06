@@ -48,8 +48,8 @@ Sunnysideup\SiteWideSearch\Admin\SearchAdmin:
 And then creat your own quick search class:
 
 ```php
-
-namespace Website\App\QuickSearches\MyQuickSearch;
+<?php
+namespace Website\App\QuickSearches;
 
 
 use Website\App\MyDataObject;
@@ -82,7 +82,16 @@ class QuickSearchPage extends QuickSearchBaseClass
 Here is another example:
 
 ```php
+<?php
+namespace Website\App\QuickSearches;
 
+
+use Website\App\MyDataObject;
+use SilverStripe\Core\ClassInfo;
+use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
+
+class QuickSearchOrder extends QuickSearchBaseClass
+{
     public function getTitle(): string
     {
         return 'Orders ';
@@ -117,4 +126,5 @@ Here is another example:
         ];
 
     }
+}
 ```
