@@ -220,10 +220,14 @@ class SearchApi
     //     Environment::increaseMemoryLimitTo(-1);
     // }
 
+    protected $cacheHasBeenBuilt = null;
+
     public function buildCache(?string $word = ''): SearchApi
     {
-        $this->getLinksInner($word);
-
+        if($this->cacheHasBeenBuilt !== $word) {
+            $this->getLinksInner($word);
+            $this->cacheHasBeenBuilt = $word;
+        }
         return $this;
 
     }
@@ -243,14 +247,13 @@ class SearchApi
         $list = $this->turnMatchesIntoList($matches);
 
         $this->saveCache();
-
         return $list;
+
 
     }
 
     public function doReplacement(string $word, string $replace): int
     {
-        $this->initCache();
         $count = 0;
         if($word) {
             $this->buildCache($word);
