@@ -393,8 +393,8 @@ class SearchApi
 
     protected function getDefaultResults(): array
     {
-        $back = $this->config()->get('hours_back_for_recent') ?? 24;
-        $limit = $this->Config()->get('limit_per_class_for_recent') ?? 5;
+        $back = $this->config()->get('hours_back_for_recent') ?: 24;
+        $limit = $this->Config()->get('limit_per_class_for_recent') ?: 5;
         $threshold = strtotime('-' . $back . ' hours', DBDatetime::now()->getTimestamp());
         if (!$threshold) {
             $threshold = time() - 86400;
@@ -427,6 +427,7 @@ class SearchApi
     {
         $start = 0;
         $fullListCheck = [];
+
         if (empty($this->objects)) {
             if (empty($limit)) {
                 $limit = (int) $this->Config()->get('limit_of_count_per_data_object');

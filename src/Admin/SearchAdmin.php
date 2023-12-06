@@ -196,7 +196,6 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 ->setQuickSearchType($this->quickSearchType)
                 ->setSearchWholePhrase(true) // always true
                 ->setWordsAsString($this->keywords)
-                ->buildCache() // make sure we have the lastest cache!
                 ->doReplacement($this->keywords, $this->replace)
             ;
             $this->applyReplace = false;
