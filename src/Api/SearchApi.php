@@ -500,6 +500,7 @@ class SearchApi
                             'ID' => $item->ID,
                             'LastEdited' => $item->LastEdited,
                             'Title' => $item->getTitle(),
+                            'ClassName' => $item->ClassName,
                             'SingularName' => $item->i18n_singular_name(),
                             'SiteWideSearchSortValue' => $this->getSortValue($item),
                             'CMSThumbnail' => DBField::create_field('HTMLText', $finder->getCMSThumbnail($item)),

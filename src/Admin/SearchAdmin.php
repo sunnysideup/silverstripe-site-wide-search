@@ -3,6 +3,7 @@
 namespace Sunnysideup\SiteWideSearch\Admin;
 
 use SilverStripe\Admin\LeftAndMain;
+use SilverStripe\Assets\File;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injector;
@@ -209,13 +210,17 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         ;
         if($results->count() === 1) {
             $result = $results->first();
-            $this->redirect($result->CMSEditLink);
-            return null;
+            if($result->HasCMSEditLink) {
+                // files do not redirect nicely...
+                if(!in_array(File::class, ClassInfo::ancestry($result->ClassName), true)) {
+                    $this->redirect($result->CMSEditLink);
+                }
+            }
         }
         // Accessing the session
         $session = $this->getRequest()->getSession();
         if($session) {
-            $session->set('QuickSearchLastResults', serialize($results->toArray()));
+            $session->set('QuickSearchLastResults' . $this->quickSearchType, serialize($results->toArray()));
         }
         return $results;
     }
