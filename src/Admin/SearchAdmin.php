@@ -173,7 +173,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     public function IsQuickSearch(): bool
     {
-        return $this->quickSearchType !== 'all';
+        return $this->quickSearchType === 'limited';
     }
 
     public function SearchResults(): ?ArrayList

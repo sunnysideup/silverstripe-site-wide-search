@@ -183,10 +183,10 @@ class FindEditableObjects
         return $result;
     }
 
-    protected function checkForValidMethods($dataObject, string $type, int $relationDepth = 0): string
+    protected function checkForValidMethods($dataObject, string $type, ?int $relationDepth = 0): string
     {
         //too many iterations!
-        if ($relationDepth > $this->Config()->get('max_relation_depth')) {
+        if ($relationDepth > (int) $this->Config()->get('max_relation_depth')) {
             return '';
         }
 
@@ -200,7 +200,7 @@ class FindEditableObjects
             if ($dataObject->hasMethod($validMethod)) {
                 return (string) $dataObject->{$validMethod}();
             }
-
+            // last resort - is there a variable with this name?
             return (string) $dataObject->{$validMethod};
         }
 
@@ -237,7 +237,7 @@ class FindEditableObjects
         ++$relationDepth;
         foreach ($this->getRelations($dataObject) as $relationName => $relType) {
             $outcome = null;
-            //no support for link through relations yet!
+            //TODO: no support for link through relations yet!
             if (is_array($relType)) {
                 continue;
             }
@@ -246,14 +246,12 @@ class FindEditableObjects
                 $rels = $dataObject->{$relationName}();
                 if ($rels) {
                     if ($rels instanceof DataList) {
-                        $rels = $rels->first();
-                    } elseif ($rels && $rels instanceof DataObject) {
+                        if(!$rels instanceof UnsavedRelationList) {
+                            $rels = $rels->first();
+                        }
+                    }
+                    if ($rels && $rels instanceof DataObject && $rels->exists()) {
                         $outcome = $this->checkForValidMethods($rels, $type, $relationDepth);
-                    } elseif ($rels instanceof UnsavedRelationList) {
-                        //do nothing;
-                    } else {
-                        user_error('Unexpected Relationship: ' . print_r($rels, 1));
-                        die('');
                     }
                 }
             }

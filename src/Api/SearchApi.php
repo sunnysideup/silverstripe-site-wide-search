@@ -487,8 +487,8 @@ class SearchApi
 
         $items = $this->turnArrayIntoObjects($matches);
         foreach ($items as $item) {
-            $link = $finder->getLink($item, $this->excludedClasses);
             if($item->canView()) {
+                $link = $finder->getLink($item, $this->excludedClasses);
                 $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
                 $list->push(
                     ArrayData::create(
