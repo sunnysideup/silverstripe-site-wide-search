@@ -49,7 +49,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     private static $menu_icon_class = 'font-icon-p-search';
 
-    private static $menu_priority = 99999;
+    private static $menu_priority = 9999999999;
 
     private static $required_permission_codes = [
         'CMS_ACCESS_SITE_WIDE_SEARCH',
