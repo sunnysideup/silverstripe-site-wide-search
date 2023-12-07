@@ -58,6 +58,7 @@
 .sunny-side-up-quick-search-form .left-search-button {
     position: absolute;
     right: 0;
+    top: 0;
     margin-right: 10px;
     height: 24px;
     width: 24px;
