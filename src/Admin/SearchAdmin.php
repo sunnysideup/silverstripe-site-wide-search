@@ -220,7 +220,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         // Accessing the session
         $session = $this->getRequest()->getSession();
         if($session) {
-            $session->set('QuickSearchLastResults' . $this->quickSearchType, serialize($results->toArray()));
+            $session->set('QuickSearchLastResults', serialize($results->toArray()));
         }
         return $results;
     }
