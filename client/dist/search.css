@@ -46,6 +46,7 @@
 
 .sunny-side-up-quick-search-form {
     max-width: 100%;
+    position: relative;
 }
 .sunny-side-up-quick-search-form input {
     width: 100%;
