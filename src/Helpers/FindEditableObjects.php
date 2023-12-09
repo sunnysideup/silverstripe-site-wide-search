@@ -94,6 +94,8 @@ class FindEditableObjects
     private static $valid_methods_edit = [
         'CMSEditLink',
         'getCMSEditLink',
+        'EditLink',
+        'getEditLink',
     ];
 
     private static $valid_methods_view = [
