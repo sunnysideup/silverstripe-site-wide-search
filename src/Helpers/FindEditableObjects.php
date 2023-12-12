@@ -245,7 +245,12 @@ class FindEditableObjects
             }
 
             if (!isset($this->relationTypesCovered[$relType])) {
-                $rels = $dataObject->{$relationName}();
+                $rels = null;
+                if($dataObject->hasMethod($relationName)) {
+                    $rels = $dataObject->{$relationName}();
+                } else {
+                    user_error('Relation ' . print_r($relationName, 1) . ' does not exist on ' . $dataObject->ClassName . ' Relations are: ' . print_r($this->getRelations($dataObject), 1), E_USER_NOTICE);
+                }
                 if ($rels) {
                     if ($rels instanceof DataList) {
                         if(!$rels instanceof UnsavedRelationList) {
