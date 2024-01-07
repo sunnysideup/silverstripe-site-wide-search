@@ -46,6 +46,7 @@
 
 .sunny-side-up-quick-search-form {
     max-width: 100%;
+    position: relative;
 }
 .sunny-side-up-quick-search-form input {
     width: 100%;
@@ -66,13 +67,13 @@
     border-radius: 50%;
     background: transparent;
     font-size: 10px;
-    border: 1px solid rgba(206,213,225, 1);
-    opacity: 0.5;
+    border: none;
+    opacity: 0.7;
+    transition: all 0.3s ease-in-out;
 }
 .sunny-side-up-quick-search-form .left-search-button:hover {
-    background: #008a00;
     color: white;
     text-decoration: none;
-    border: 1px solid #008a00;
     opacity: 1;
+    font-size: 110%;
 }

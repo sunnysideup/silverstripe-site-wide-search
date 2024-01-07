@@ -43,10 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
       targetElement.appendChild(holder)
 
       if (input) {
-        console.log('adding keyup event listener')
+        // console.log('adding keyup event listener')
         input.addEventListener('keyup', function (event) {
           var keywords = this.value.trim()
-          console.log('keywords', keywords.length)
+          // console.log('keywords', keywords.length)
           if (keywords.length < 2) {
             button.style.display = 'block'
           } else {
