@@ -211,9 +211,9 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         if($results->count() === 1) {
             $result = $results->first();
             if($result->HasCMSEditLink) {
-                // files do not redirect nicely...
+                // files do not re-redirect nicely...
                 if(!in_array(File::class, ClassInfo::ancestry($result->ClassName), true)) {
-                    $this->redirect($result->CMSEditLink);
+                    $this->redirect($result->CMSEditLink());
                 }
             }
         }
