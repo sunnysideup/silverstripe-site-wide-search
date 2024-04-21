@@ -1,3 +1,7 @@
+#Menu-Sunnysideup-SiteWideSearch-Admin-SearchAdmin > a {
+    padding: 0;
+    min-height: 0;
+}
 .search-results-for-site-wide-search,
 .search-results-for-site-wide-search li {
     list-style: none!important;
