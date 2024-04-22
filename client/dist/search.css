@@ -1,7 +1,4 @@
-#Menu-Sunnysideup-SiteWideSearch-Admin-SearchAdmin > a {
-    padding: 0;
-    min-height: 0;
-}
+
 .search-results-for-site-wide-search,
 .search-results-for-site-wide-search li {
     list-style: none!important;
@@ -48,23 +45,34 @@
 }
 
 
+
+
+
+#Menu-Sunnysideup-SiteWideSearch-Admin-SearchAdmin > a {
+    padding: 0;
+    min-height: 0;
+}
 .sunny-side-up-quick-search-form {
     max-width: 100%;
     position: relative;
+    border: none;
 }
 .sunny-side-up-quick-search-form input {
-    width: 100%;
+    width: calc(100% - 2px);
     height: 30px;
     font-size: 1.2rem;
-    padding: 0 5px;
-    border: 1px solid rgba(206,213,225,.5);
+    padding: 25px 10px;
+    border: none;
+    border-bottom: 1px solid rgba(206,213,225,.5);
     border-radius: 3px;
+    background-color: transparent;
+    font-size: 15.6px!important;
 }
 .sunny-side-up-quick-search-form .left-search-button {
+    display: none;
     position: absolute;
-    right: 0;
-    top: 0;
-    margin-right: 10px;
+    right: 10px;
+    top: 12px;
     height: 24px;
     width: 24px;
     margin-top: 3px;
@@ -74,6 +82,7 @@
     border: none;
     opacity: 0.7;
     transition: all 0.3s ease-in-out;
+    z-index: 9;
 }
 .sunny-side-up-quick-search-form .left-search-button:hover {
     color: white;
