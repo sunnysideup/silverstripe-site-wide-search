@@ -56,6 +56,7 @@
     max-width: 100%;
     position: relative;
     border: none;
+    border-radius: 0;
 }
 .sunny-side-up-quick-search-form input {
     width: calc(100% - 2px);
@@ -64,9 +65,27 @@
     padding: 25px 10px;
     border: none;
     border-bottom: 1px solid rgba(206,213,225,.5);
-    border-radius: 3px;
+    border-radius: 0px;
     background-color: transparent;
     font-size: 15.6px!important;
+    display: block;
+  }
+  .sunny-side-up-quick-search-form input::placeholder {
+    color: #333;
+    padding-left: 1rem;
+  }
+  .sunny-side-up-quick-search-form input:not([placeholder=""]):not([placeholder=" "])::placeholder  {
+    color: #fff;
+  }
+  .sunny-side-up-quick-search-form input:focus {
+  background-color: #008a00;
+  outline: none;
+  border-radius: 0;
+  border: none;
+  color: #fff;
+}
+.sunny-side-up-quick-search-form input:focus::placeholder {
+  color: #008a00;
 }
 .sunny-side-up-quick-search-form .left-search-button {
     display: none;
