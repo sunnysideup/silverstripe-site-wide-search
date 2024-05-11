@@ -86,7 +86,7 @@
   color: #fff;
 }
 .sunny-side-up-quick-search-form input:focus::placeholder {
-  color: #008a00;
+  color: #008a00!important;
 }
 .sunny-side-up-quick-search-form .left-search-button {
     display: none;
