@@ -29,7 +29,9 @@ class Cache implements Flushable
     {
         $cacheName = $this->cleanCacheName($cacheName);
         $cache = $this->getCache();
-        $array = $cache->has($cacheName) ? unserialize($cache->get($cacheName)) : [];
+        if ($cache->has($cacheName)) {
+            unserialize($cache->get($cacheName));
+        }
 
         return $cache->has($cacheName) ? unserialize($cache->get($cacheName)) : [];
     }

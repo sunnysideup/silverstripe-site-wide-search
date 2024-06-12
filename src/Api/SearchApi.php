@@ -16,12 +16,11 @@ use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\LoginAttempt;
 use SilverStripe\Security\MemberPassword;
 use SilverStripe\Security\RememberLoginHash;
-use SilverStripe\Versioned\ChangeSet;
-use SilverStripe\Versioned\Versioned;
-use SilverStripe\Versioned\ChangeSetItem;
-use SilverStripe\View\ArrayData;
-
 use SilverStripe\SessionManager\Models\LoginSession;
+use SilverStripe\Versioned\ChangeSet;
+use SilverStripe\Versioned\ChangeSetItem;
+use SilverStripe\Versioned\Versioned;
+use SilverStripe\View\ArrayData;
 use Sunnysideup\SiteWideSearch\Helpers\FindClassesAndFields;
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
 
@@ -30,8 +29,6 @@ class SearchApi
     use Extensible;
     use Configurable;
     use Injectable;
-
-
 
     protected $debug = false;
 
@@ -56,14 +53,14 @@ class SearchApi
     protected $includedFields = [];
 
     protected $includedClassFieldCombos = [];
+
     protected $defaultLists = [];
 
-    protected $sortOverride = null;
+    protected $sortOverride;
 
     protected $words = [];
 
     protected $replace = '';
-
 
     private $objects = [];
 
@@ -96,6 +93,7 @@ class SearchApi
     private static $default_include_fields = [];
 
     private static $default_include_class_field_combos = [];
+
     private static $default_lists = [];
 
     public function setDebug(bool $b): SearchApi
@@ -112,13 +110,13 @@ class SearchApi
 
     public function setQuickSearchType(string $nameOrType): SearchApi
     {
-        if($nameOrType === 'all') {
+        if ($nameOrType === 'all') {
             $this->isQuickSearch = false;
             $this->quickSearchType = '';
-        } elseif($nameOrType === 'limited') {
+        } elseif ($nameOrType === 'limited') {
             $this->isQuickSearch = true;
             $this->quickSearchType = '';
-        } elseif(class_exists($nameOrType)) {
+        } elseif (class_exists($nameOrType)) {
             $this->quickSearchType = $nameOrType;
             $object = Injector::inst()->get($nameOrType);
             $this->setIncludedClasses($object->getClassesToSearch());
@@ -149,7 +147,7 @@ class SearchApi
 
     public function setBaseClass(string $class): SearchApi
     {
-        if(class_exists($class)) {
+        if (class_exists($class)) {
             $this->baseClass = $class;
         }
 
@@ -212,7 +210,6 @@ class SearchApi
         return $this;
     }
 
-
     // public function __construct()
     // {
     //     Environment::increaseTimeLimitTo(300);
@@ -220,16 +217,15 @@ class SearchApi
     //     Environment::increaseMemoryLimitTo(-1);
     // }
 
-    protected $cacheHasBeenBuilt = null;
+    protected $cacheHasBeenBuilt;
 
     public function buildCache(?string $word = ''): SearchApi
     {
-        if($this->cacheHasBeenBuilt !== $word) {
+        if ($this->cacheHasBeenBuilt !== $word) {
             $this->getLinksInner($word);
             $this->cacheHasBeenBuilt = $word;
         }
         return $this;
-
     }
 
     public function getLinks(?string $word = ''): ArrayList
@@ -248,14 +244,12 @@ class SearchApi
 
         $this->saveCache();
         return $list;
-
-
     }
 
     public function doReplacement(string $word, string $replace): int
     {
         $count = 0;
-        if($word) {
+        if ($word !== '' && $word !== '0') {
             $this->buildCache($word);
             $replace = $this->securityCheckInput($replace);
             foreach ($this->objects as $item) {
@@ -263,7 +257,7 @@ class SearchApi
                 if ($item->canEdit()) {
                     $fields = $this->getAllValidFields($className);
                     foreach ($fields as $field) {
-                        if(!$this->includeFieldTest($className, $field)) {
+                        if (! $this->includeFieldTest($className, $field)) {
                             continue;
                         }
                         $new = str_replace($word, $replace, $item->{$field});
@@ -291,7 +285,6 @@ class SearchApi
         return $this;
     }
 
-
     protected function initCache(): self
     {
         $this->getCache()->initCache();
@@ -299,14 +292,13 @@ class SearchApi
         return $this;
     }
 
-
     protected function writeAndPublishIfAppropriate($item)
     {
         if ($item->hasExtension(Versioned::class)) {
             $myStage = Versioned::get_stage();
             Versioned::set_stage(Versioned::DRAFT);
             // is it on live and is live the same as draft
-            $canBePublished = $item->isPublished() && !$item->isModifiedOnDraft();
+            $canBePublished = $item->isPublished() && ! $item->isModifiedOnDraft();
             $item->writeToStage(Versioned::DRAFT);
             if ($canBePublished) {
                 $item->publishSingle();
@@ -315,7 +307,6 @@ class SearchApi
         } else {
             $item->write();
         }
-
     }
 
     protected function getMatches(?string $word = ''): array
@@ -328,7 +319,7 @@ class SearchApi
         $this->workOutInclusionsAndExclusions();
 
         // important to do this first
-        if($word) {
+        if ($word) {
             $this->setWordsAsString($word);
         }
         $this->workOutWordsForSearching();
@@ -338,10 +329,9 @@ class SearchApi
 
         $array = [];
 
-        if (count($this->words)) {
+        if (count($this->words) > 0) {
             foreach ($this->getAllDataObjects() as $className) {
-
-                if(!$this->includeClassTest($className)) {
+                if (! $this->includeClassTest($className)) {
                     continue;
                 }
 
@@ -349,7 +339,7 @@ class SearchApi
                 $fields = $this->getAllValidFields($className);
                 $filterAny = [];
                 foreach ($fields as $field) {
-                    if(!$this->includeFieldTest($className, $field)) {
+                    if (! $this->includeFieldTest($className, $field)) {
                         continue;
                     }
                     $filterAny[$field . ':PartialMatch'] = $this->words;
@@ -363,7 +353,7 @@ class SearchApi
                         DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
                     }
                     $defaultList = $this->getDefaultList($className);
-                    if(empty($defaultList)) {
+                    if ($defaultList === []) {
                         $array[$className] = $className::get();
                     }
                     $array[$className] = $array[$className]->filter(['ClassName' => $className]);
@@ -399,14 +389,14 @@ class SearchApi
         $back = $this->config()->get('hours_back_for_recent') ?: 24;
         $limit = $this->Config()->get('limit_per_class_for_recent') ?: 5;
         $threshold = strtotime('-' . $back . ' hours', DBDatetime::now()->getTimestamp());
-        if (!$threshold) {
+        if (! $threshold) {
             $threshold = time() - 86400;
         }
 
         $array = [];
         $classNames = $this->getAllDataObjects();
         foreach ($classNames as $className) {
-            if($this->includeClassTest($className)) {
+            if ($this->includeClassTest($className)) {
                 $array[$className] = $className::get()
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
                     ->sort(['LastEdited' => 'DESC'])
@@ -421,10 +411,6 @@ class SearchApi
 
     /**
      * weeds out doubles
-     *
-     * @param array $matches
-     * @param integer|null $limit
-     * @return array
      */
     protected function turnArrayIntoObjects(array $matches, ?int $limit = 0): array
     {
@@ -432,7 +418,7 @@ class SearchApi
         $fullListCheck = [];
 
         if (empty($this->objects)) {
-            if (empty($limit)) {
+            if ($limit === null || $limit === 0) {
                 $limit = (int) $this->Config()->get('limit_of_count_per_data_object');
             }
 
@@ -447,14 +433,14 @@ class SearchApi
                     DB::alteration_message(' ... number of matches for : ' . $className . ': ' . count($ids));
                 }
 
-                if (count($ids)) {
+                if (count($ids) > 0) {
                     $className = (string) $className;
                     $items = $className::get()
                         ->filter(['ID' => $ids, 'ClassName' => $className])
                         ->limit($limit)
                     ;
                     foreach ($items as $item) {
-                        if(isset($fullListCheck[$item->ClassName][$item->ID])) {
+                        if (isset($fullListCheck[$item->ClassName][$item->ID])) {
                             continue;
                         }
                         if ($item->canView()) {
@@ -487,7 +473,7 @@ class SearchApi
 
         $items = $this->turnArrayIntoObjects($matches);
         foreach ($items as $item) {
-            if($item->canView()) {
+            if ($item->canView()) {
                 $link = $finder->getLink($item, $this->excludedClasses);
                 $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
                 $list->push(
@@ -511,7 +497,7 @@ class SearchApi
         }
         $finder->saveCache();
 
-        if(!empty($this->sortOverride)) {
+        if (! empty($this->sortOverride)) {
             return $list->sort($this->sortOverride);
         } else {
             return $list->sort(['SiteWideSearchSortValue' => 'ASC']);
@@ -526,7 +512,7 @@ class SearchApi
 
         $done = false;
         $score = 0;
-        if ($fullWords) {
+        if ($fullWords !== '' && $fullWords !== '0') {
             $fieldValues = [];
             $fieldValuesAll = '';
             foreach ($fields as $field) {
@@ -541,7 +527,7 @@ class SearchApi
             $testWords = array_unique($testWords);
             foreach ($testWords as $wordKey => $word) {
                 //match a exact field to full words / one word
-                $fullWords = !(bool) $wordKey;
+                $fullWords = ! (bool) $wordKey;
                 if (false === $done) {
                     $count = 0;
                     foreach ($fieldValues as $fieldValue) {
@@ -565,22 +551,19 @@ class SearchApi
                 }
 
                 // all individual words are present
-                if (false === $done) {
-                    if ($fullWords) {
-                        $score += 1000;
-                        $allMatch = true;
-                        foreach ($this->words as $tmpWord) {
-                            $pos = strpos($fieldValuesAll, $tmpWord);
-                            if (false === $pos) {
-                                $allMatch = false;
+                if (false === $done && $fullWords) {
+                    $score += 1000;
+                    $allMatch = true;
+                    foreach ($this->words as $tmpWord) {
+                        $pos = strpos($fieldValuesAll, $tmpWord);
+                        if (false === $pos) {
+                            $allMatch = false;
 
-                                break;
-                            }
+                            break;
                         }
-
-                        if ($allMatch) {
-                            $done = true;
-                        }
+                    }
+                    if ($allMatch) {
+                        $done = true;
                     }
                 }
             }
@@ -640,7 +623,7 @@ class SearchApi
             $this->words = [implode(' ', $this->words)];
         }
 
-        if (!count($this->words)) {
+        if (count($this->words) === 0) {
             user_error('No word has been provided');
         }
 
@@ -648,7 +631,6 @@ class SearchApi
         $this->words = array_map('strtolower', $this->words);
         $this->words = array_unique($this->words);
         $this->words = array_filter($this->words);
-
     }
 
     protected function getAllDataObjects(): array
@@ -661,16 +643,15 @@ class SearchApi
         return $this->getCache()->getAllValidFields($className, $this->isQuickSearch, $this->includedFields, $this->includedClassFieldCombos);
     }
 
-
     protected function includeClassTest(string $className): bool
     {
-        if(count($this->includedClassesWithSubClassess) && !in_array($className, $this->includedClassesWithSubClassess, true)) {
+        if (count($this->includedClassesWithSubClassess) && ! in_array($className, $this->includedClassesWithSubClassess, true)) {
             if ($this->debug) {
                 DB::alteration_message(' ... Skipping as not included ' . $className);
             }
             return false;
         }
-        if(count($this->excludedClassesWithSubClassess) && in_array($className, $this->excludedClassesWithSubClassess, true)) {
+        if (count($this->excludedClassesWithSubClassess) && in_array($className, $this->excludedClassesWithSubClassess, true)) {
             if ($this->debug) {
                 DB::alteration_message(' ... Skipping as excluded ' . $className);
             }
@@ -685,12 +666,12 @@ class SearchApi
 
     protected function includeFieldTest(string $className, string $field): bool
     {
-        if(isset($this->includedClassFieldCombos[$className][$field])) {
+        if (isset($this->includedClassFieldCombos[$className][$field])) {
             return true;
-        } elseif(count($this->includedFields)) {
+        } elseif (count($this->includedFields) > 0) {
             return in_array($field, $this->includedFields, true);
-        } elseif (count($this->excludedFields)) {
-            return in_array($field, $this->includedFields, true) ? false : true;
+        } elseif (count($this->excludedFields) > 0) {
+            return ! in_array($field, $this->includedFields, true);
         } else {
             return false;
         }
@@ -699,7 +680,7 @@ class SearchApi
     protected function includeSubClasses(array $classes): array
     {
         $toAdd = [];
-        foreach($classes as $class) {
+        foreach ($classes as $class) {
             $toAdd = array_merge($toAdd, ClassInfo::subclassesFor($class, false));
         }
         return array_unique(array_merge($classes, $toAdd));

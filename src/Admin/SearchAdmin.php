@@ -6,20 +6,17 @@ use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Assets\File;
 use SilverStripe\Control\HTTPResponse;
 use SilverStripe\Core\ClassInfo;
-use SilverStripe\Core\Injector\Injector;
-
 use SilverStripe\Core\Environment;
+use SilverStripe\Core\Injector\Injector;
 use SilverStripe\Forms\CheckboxField;
 use SilverStripe\Forms\Form;
 use SilverStripe\Forms\FormAction;
 use SilverStripe\Forms\HiddenField;
 use SilverStripe\Forms\HTMLReadonlyField;
-use SilverStripe\Forms\LiteralField;
 use SilverStripe\Forms\OptionsetField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\Forms\ToggleCompositeField;
 use SilverStripe\ORM\ArrayList;
-use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\PermissionProvider;
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
@@ -57,10 +54,8 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected function init()
     {
-        if($this->request->param('Action')) {
-            if(empty($this->request->postVars())) {
-                $this->redirect('/admin/find');
-            }
+        if ($this->request->param('Action') && empty($this->request->postVars())) {
+            $this->redirect('/admin/find');
         }
         parent::init();
     }
@@ -101,21 +96,16 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 _t(__CLASS__ . '.ReplaceToggle', 'Replace with ... (optional - make a backup first!)'),
                 [
                     (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
-                      ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.'),
+                        ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.'),
                     (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
                         ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below'),
                 ]
             )->setHeadingLevel(4)
         );
 
-
-        if (!$this->getRequest()->requestVar('Keywords')) {
+        if (! $this->getRequest()->requestVar('Keywords')) {
             $lastResults = $this->lastSearchResults();
-            if($lastResults) {
-                $resultsTitle = 'Last Results';
-            } else {
-                $resultsTitle = 'Last Edited';
-            }
+            $resultsTitle = $lastResults instanceof \SilverStripe\ORM\ArrayList ? 'Last Results' : 'Last Edited';
             $this->listHTML = $this->renderWith(self::class . '_Results');
         } else {
             $resultsTitle = 'Search Results';
@@ -181,9 +171,9 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::increaseTimeLimitTo(300);
         Environment::setMemoryLimitMax(-1);
         Environment::increaseMemoryLimitTo(-1);
-        if(empty($this->rawData)) {
+        if (empty($this->rawData)) {
             $lastResults = $this->lastSearchResults();
-            if($lastResults) {
+            if ($lastResults instanceof \SilverStripe\ORM\ArrayList) {
                 return $lastResults;
             }
         }
@@ -208,19 +198,17 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             ->setWordsAsString($this->keywords)
             ->getLinks()
         ;
-        if($results->count() === 1) {
+        if ($results->count() === 1) {
             $result = $results->first();
-            if($result->HasCMSEditLink && $result->CMSEditLink) {
-                // files do not re-redirect nicely...
-                if(!in_array(File::class, ClassInfo::ancestry($result->ClassName), true)) {
-                    // this is a variable, not a method!
-                    $this->redirect($result->CMSEditLink);
-                }
+            // files do not re-redirect nicely...
+            if ($result->HasCMSEditLink && $result->CMSEditLink && ! in_array(File::class, ClassInfo::ancestry($result->ClassName), true)) {
+                // this is a variable, not a method!
+                $this->redirect($result->CMSEditLink);
             }
         }
         // Accessing the session
         $session = $this->getRequest()->getSession();
-        if($session) {
+        if ($session) {
             $session->set('QuickSearchLastResults', serialize($results->toArray()));
         }
         return $results;
@@ -228,7 +216,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected function workOutBoolean(string $fieldName, ?array $data = null, ?bool $default = false): bool
     {
-        return (bool) (isset($data['IsSubmitHiddenField']) ? !empty($data[$fieldName]) : $default);
+        return (bool) (isset($data['IsSubmitHiddenField']) ? ! empty($data[$fieldName]) : $default);
     }
 
     protected function workOutString(string $fieldName, ?array $data = null, ?string $default = ''): string
@@ -251,16 +239,16 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         // Accessing the session
         $session = $this->getRequest()->getSession();
-        if($this->quickSearchType) {
+        if ($this->quickSearchType) {
             $session->set('QuickSearchType', $this->quickSearchType);
-        } elseif($session) {
+        } elseif ($session) {
             $this->quickSearchType = $session->get('QuickSearchType');
-            if(isset($_GET['flush'])) {
+            if (isset($_GET['flush'])) {
                 $this->quickSearchType = '';
                 $session->set('QuickSearchType', '');
             }
         }
-        if(!$this->quickSearchType) {
+        if (! $this->quickSearchType) {
             $this->quickSearchType = $this->Config()->get('default_quick_search_type');
         }
         return (string) $this->quickSearchType;
@@ -270,15 +258,15 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
     {
         // Accessing the session
         $session = $this->getRequest()->getSession();
-        if($session) {
-            if(isset($_GET['flush'])) {
+        if ($session) {
+            if (isset($_GET['flush'])) {
                 $session->clear('QuickSearchLastResults');
             } else {
                 $data = $session->get('QuickSearchLastResults');
-                if($data) {
+                if ($data) {
                     $array = unserialize($data);
                     $al = ArrayList::create();
-                    foreach($array as $item) {
+                    foreach ($array as $item) {
                         $al->push($item);
                     }
                     return $al;

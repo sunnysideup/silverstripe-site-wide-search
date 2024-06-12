@@ -24,6 +24,7 @@ class FindEditableObjects
     private const CACHE_NAME = 'FindEditableObjectsCache';
 
     protected $additionalCacheName = '';
+
     protected $relationTypesCovered = [];
 
     protected $excludedClasses = [];
@@ -212,7 +213,7 @@ class FindEditableObjects
                     $outcome = null;
                     if ($dataObject->hasMethod($validMethod)) {
                         $outcome = $dataObject->{$validMethod}();
-                    } elseif (!empty($dataObject->{$validMethod})) {
+                    } elseif (! empty($dataObject->{$validMethod})) {
                         $outcome = $dataObject->{$validMethod};
                     }
 
@@ -224,12 +225,10 @@ class FindEditableObjects
                 }
             }
 
-            if ('valid_methods_edit' === $type) {
-                if (class_exists(CMSEditLinkAPI::class)) {
-                    $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
-                    if ($link) {
-                        return (string) $link;
-                    }
+            if ('valid_methods_edit' === $type && class_exists(CMSEditLinkAPI::class)) {
+                $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
+                if ($link !== '' && $link !== '0') {
+                    return $link;
                 }
             }
         }
@@ -244,18 +243,16 @@ class FindEditableObjects
                 continue;
             }
 
-            if (!isset($this->relationTypesCovered[$relType])) {
+            if (! isset($this->relationTypesCovered[$relType])) {
                 $rels = null;
-                if($dataObject->hasMethod($relationName)) {
+                if ($dataObject->hasMethod($relationName)) {
                     $rels = $dataObject->{$relationName}();
                 } else {
                     user_error('Relation ' . print_r($relationName, 1) . ' does not exist on ' . $dataObject->ClassName . ' Relations are: ' . print_r($this->getRelations($dataObject), 1), E_USER_NOTICE);
                 }
                 if ($rels) {
-                    if ($rels instanceof DataList) {
-                        if(!$rels instanceof UnsavedRelationList) {
-                            $rels = $rels->first();
-                        }
+                    if ($rels instanceof DataList && ! $rels instanceof UnsavedRelationList) {
+                        $rels = $rels->first();
                     }
                     if ($rels && $rels instanceof DataObject && $rels->exists()) {
                         $outcome = $this->checkForValidMethods($rels, $type, $relationDepth);
@@ -273,7 +270,7 @@ class FindEditableObjects
 
     protected function getRelations($dataObject): array
     {
-        if (!isset($this->cache['rels'][$dataObject->ClassName])) {
+        if (! isset($this->cache['rels'][$dataObject->ClassName])) {
             $this->cache['rels'][$dataObject->ClassName] = array_merge(
                 Config::inst()->get($dataObject->ClassName, 'belongs_to'),
                 Config::inst()->get($dataObject->ClassName, 'has_one'),
@@ -282,7 +279,7 @@ class FindEditableObjects
                 Config::inst()->get($dataObject->ClassName, 'many_many')
             );
             foreach ($this->cache['rels'][$dataObject->ClassName] as $key => $value) {
-                if (!(is_string($value) && class_exists($value) && $this->classCanBeIncluded($value))) {
+                if (! (is_string($value) && class_exists($value) && $this->classCanBeIncluded($value))) {
                     unset($this->cache['rels'][$dataObject->ClassName][$key]);
                 }
             }
@@ -293,7 +290,7 @@ class FindEditableObjects
 
     protected function getValidMethods(string $type): array
     {
-        if (!isset($this->cache['validMethods'][$type])) {
+        if (! isset($this->cache['validMethods'][$type])) {
             $this->cache['validMethods'][$type] = $this->Config()->get($type);
         }
 
@@ -302,17 +299,14 @@ class FindEditableObjects
 
     /**
      * it either is NOT in the excluded list or it is in the included list.
-     *
-     * @param string $dataObjectClassName
-     * @return boolean
      */
     protected function classCanBeIncluded(string $dataObjectClassName): bool
     {
-        if(count($this->excludedClasses)) {
-            if(!class_exists($dataObjectClassName)) {
+        if (count($this->excludedClasses) > 0) {
+            if (! class_exists($dataObjectClassName)) {
                 return false;
             }
-            return !in_array($dataObjectClassName, $this->excludedClasses, true);
+            return ! in_array($dataObjectClassName, $this->excludedClasses, true);
         }
         user_error('Please set excludedClasses', E_USER_NOTICE);
         return false;

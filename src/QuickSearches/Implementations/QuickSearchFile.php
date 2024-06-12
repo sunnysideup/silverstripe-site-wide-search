@@ -3,7 +3,6 @@
 namespace Sunnysideup\SiteWideSearch\QuickSearches\Implementations;
 
 use SilverStripe\Assets\File;
-use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Injector\Injector;
 use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
 
@@ -13,12 +12,14 @@ class QuickSearchFile extends QuickSearchBaseClass
     {
         return Injector::inst()->get(File::class)->i18n_plural_name();
     }
+
     public function getClassesToSearch(): array
     {
         return [
             File::class,
         ];
     }
+
     public function getFieldsToSearch(): array
     {
         return [
@@ -26,5 +27,4 @@ class QuickSearchFile extends QuickSearchBaseClass
             'Filename',
         ];
     }
-
 }

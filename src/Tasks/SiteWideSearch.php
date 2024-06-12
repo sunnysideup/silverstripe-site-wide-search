@@ -10,29 +10,14 @@ use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SiteWideSearch extends BuildTask
 {
-    /**
-     * {@inheritDoc}
-     */
     protected $title = 'Search the whole site for a word or phrase';
 
-    /**
-     * {@inheritDoc}
-     */
     protected $description = 'Search the whole site and get a list of links to the matching records';
 
-    /**
-     * {@inheritDoc}
-     */
     protected $enabled = true;
 
-    /**
-     * {@inheritDoc}
-     */
     private static $segment = 'search-and-replace';
 
-    /**
-     * {@inheritDoc}
-     */
     public function run($request)
     {
         Environment::increaseTimeLimitTo(300);
@@ -40,12 +25,12 @@ class SiteWideSearch extends BuildTask
         Environment::increaseMemoryLimitTo(-1);
         $debug = $request->postVar('debug') ? 'checked="checked"' : '';
         $word = $request->requestVar('word');
-        if (!is_string($word)) {
+        if (! is_string($word)) {
             $word = '';
         }
 
         $replace = $request->requestVar('replace');
-        if (!is_string($replace)) {
+        if (! is_string($replace)) {
             $replace = '';
         }
 
@@ -64,7 +49,7 @@ class SiteWideSearch extends BuildTask
 ';
         echo $html;
         $api = SearchApi::create();
-        if ($debug) {
+        if ($debug !== '' && $debug !== '0') {
             $api->setDebug(true);
         }
 
@@ -74,7 +59,7 @@ class SiteWideSearch extends BuildTask
         foreach ($links as $link) {
             $item = $link->Object;
             $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
-            if ($debug) {
+            if ($debug !== '' && $debug !== '0') {
                 $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: ' . $link->SiteWideSearchSortValue;
             }
 
@@ -86,7 +71,7 @@ class SiteWideSearch extends BuildTask
             }
         }
 
-        if ($replace) {
+        if ($replace !== '' && $replace !== '0') {
             $api->doReplacement($word, $replace);
             $api->setDebug(true);
         }

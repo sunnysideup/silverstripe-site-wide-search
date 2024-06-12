@@ -9,12 +9,10 @@ use SilverStripe\Core\Injector\Injector;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\FieldType\DBString;
 
-
-use Sunnysideup\SiteWideSearch\Helpers\Cache;
-
 class FindClassesAndFields
 {
     use Injectable;
+
     /**
      * @var string
      */
@@ -24,10 +22,11 @@ class FindClassesAndFields
         'ID' => 'Int',
         'Created' => 'DBDatetime',
         'LastEdited' => 'DBDatetime',
-        'ClassName' => 'Varchar'
+        'ClassName' => 'Varchar',
     ];
 
     protected $baseClass = DataObject::class;
+
     protected $debug = false;
 
     /**
@@ -63,7 +62,6 @@ class FindClassesAndFields
      */
     protected $cache = [];
 
-
     public function saveCache(): self
     {
         $this->getFileCache()->setCacheValues(self::CACHE_NAME . '_' . $this->baseClass, $this->cache);
@@ -83,17 +81,16 @@ class FindClassesAndFields
         return $this;
     }
 
-    protected static $singleton = null;
+    protected static $singleton;
 
     public static function inst(string $baseClass)
     {
-        if(self::$singleton === null) {
+        if (self::$singleton === null) {
             self::$singleton = Injector::inst()->get(static::class);
         }
         self::$singleton->setBaseClass($baseClass);
         return self::$singleton;
     }
-
 
     public function setBaseClass(string $baseClass): self
     {
@@ -104,7 +101,7 @@ class FindClassesAndFields
 
     public function getAllDataObjects(): array
     {
-        if (!isset($this->cache['AllDataObjects'][$this->baseClass])) {
+        if (! isset($this->cache['AllDataObjects'][$this->baseClass])) {
             $this->cache['AllDataObjects'][$this->baseClass] = array_values(
                 ClassInfo::subclassesFor($this->baseClass, false)
             );
@@ -116,24 +113,23 @@ class FindClassesAndFields
 
     public function getAllValidFields(string $className, ?bool $isQuickSearch = false, ?array $includedFields = [], ?array $includedClassFieldCombos = []): array
     {
-        if (!isset($this->cache['AllValidFields'][$className])) {
+        if (! isset($this->cache['AllValidFields'][$className])) {
             $this->cache['AllValidFields'][$className] = Config::inst()->get($className, 'db') ?? [];
             $this->cache['AllValidFields'][$className] = array_merge(
                 $this->cache['AllValidFields'][$className],
                 self::BASIC_FIELDS
             );
-
         }
         $array = [];
         foreach ($this->cache['AllValidFields'][$className] as $name => $type) {
             if ($this->isValidFieldType($type, $className, $name)) {
                 $array[] = $name;
-            } elseif(in_array($name, $includedFields, true)) {
+            } elseif (in_array($name, $includedFields, true)) {
                 $array[] = $name;
             }
         }
-        if(isset($includedClassFieldCombos[$className])) {
-            foreach($includedClassFieldCombos[$className] as $name) {
+        if (isset($includedClassFieldCombos[$className])) {
+            foreach ($includedClassFieldCombos[$className] as $name) {
                 $array[] = $name;
             }
         }
@@ -150,7 +146,7 @@ class FindClassesAndFields
 
     protected function getAllIndexedFields(string $className, array $dbFields): array
     {
-        if (!isset($this->cache['AllIndexedFields'][$className])) {
+        if (! isset($this->cache['AllIndexedFields'][$className])) {
             $this->cache['AllIndexedFields'][$className] = [];
             $indexes = Config::inst()->get($className, 'indexes');
             if (is_array($indexes)) {
@@ -185,15 +181,10 @@ class FindClassesAndFields
 
     /**
      * for a type, it works out if it is a valid field type.
-     *
-     * @param string $type
-     * @param string $className
-     * @param string $fieldName
-     * @return boolean
      */
     protected function isValidFieldType(string $type, string $className, string $fieldName): bool
     {
-        if (!isset($this->cache['AllValidFieldTypes'][$type])) {
+        if (! isset($this->cache['AllValidFieldTypes'][$type])) {
             $this->cache['AllValidFieldTypes'][$type] = false;
             $singleton = Injector::inst()->get($className);
             $field = $singleton->dbObject($fieldName);
@@ -204,5 +195,4 @@ class FindClassesAndFields
 
         return $this->cache['AllValidFieldTypes'][$type];
     }
-
 }
