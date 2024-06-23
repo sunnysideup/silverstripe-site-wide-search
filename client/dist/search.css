@@ -1,10 +1,9 @@
-
 .search-results-for-site-wide-search,
 .search-results-for-site-wide-search li {
-    list-style: none!important;
-    margin-left: 0!important;
-    padding-left: 0!important;
-    overflow: hidden!important;
+    list-style: none !important;
+    margin-left: 0 !important;
+    padding-left: 0 !important;
+    overflow: hidden !important;
 }
 .search-results-for-site-wide-search li {
     margin-bottom: 1rem;
@@ -13,11 +12,11 @@
     background-color: beige;
 }
 .search-results-for-site-wide-search .disabled {
-    color: #575757!important;
+    color: #575757 !important;
 }
 .search-results-for-site-wide-search li img {
-    height: 30px!important;;
-    width: auto!important;
+    height: 30px !important;
+    width: auto !important;
     float: right;
 }
 .search-results-for-site-wide-search a {
@@ -44,8 +43,6 @@
     border: 1px solid #008a00;
 }
 
-
-
 #Menu-Sunnysideup-SiteWideSearch-Admin-SearchAdmin {
     margin-right: -3px;
 }
@@ -66,29 +63,29 @@
     height: 30px;
     padding: 25px 10px;
     border: none;
-    border-bottom: 1px solid rgba(206,213,225,.5);
+    border-bottom: 1px solid rgba(206, 213, 225, 0.5);
     border-radius: 0px;
     background-color: transparent;
-    font-size: .923rem!important;
+    font-size: 0.923rem !important;
     display: block;
     color: #fff;
-  }
-  .sunny-side-up-quick-search-form input::placeholder {
+}
+.sunny-side-up-quick-search-form input::placeholder {
     color: #333;
-    padding-left: 1rem;
-  }
-  .sunny-side-up-quick-search-form input:not([placeholder=""]):not([placeholder=" "])::placeholder  {
+    padding-left: 0rem;
+}
+.sunny-side-up-quick-search-form input:not([placeholder=""]):not([placeholder=" "])::placeholder {
     color: #fff;
-  }
-  .sunny-side-up-quick-search-form input:focus {
-  background-color: var(--success, #008a00);
-  outline: none;
-  border-radius: 0;
-  border: none;
-  color: #fff;
+}
+.sunny-side-up-quick-search-form input:focus {
+    background-color: var(--success, #008a00);
+    outline: none;
+    border-radius: 0;
+    border: none;
+    color: #fff;
 }
 .sunny-side-up-quick-search-form input:focus::placeholder {
-  color: #008a00!important;
+    color: #008a00 !important;
 }
 .sunny-side-up-quick-search-form .left-search-button {
     display: none;
