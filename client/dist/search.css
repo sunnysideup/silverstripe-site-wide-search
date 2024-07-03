@@ -27,8 +27,7 @@
     display: inline-block;
     font-family: monospace;
     font-size: 1.7rem;
-    border: 1px solid #0071c4;
-    background-color: #0071c455;
+    background-color: #0071c433;
     border-radius: 50%;
     width: 2rem;
     height: 2rem;
@@ -38,7 +37,7 @@
 }
 .search-results-for-site-wide-search a:hover {
     background: #008a00;
-    color: white;
+    color: white !important;
     text-decoration: none;
     border: 1px solid #008a00;
 }
