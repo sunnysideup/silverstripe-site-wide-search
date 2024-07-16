@@ -88,7 +88,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
         $fields->push(
             (new CheckboxField('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
-                ->setDescription('If ticked, any item will be included that includes the whole phrase (e.g. New Zealand, rather than New OR Zealand)')
+                ->setDescription('If ticked, only items will be included that includes the whole phrase (e.g. "New Zealand", rather than anything that includes "New" OR "Zealand")')
         );
         $fields->push(
             ToggleCompositeField::create(
