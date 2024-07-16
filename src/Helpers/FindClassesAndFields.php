@@ -123,14 +123,14 @@ class FindClassesAndFields
         $array = [];
         foreach ($this->cache['AllValidFields'][$className] as $name => $type) {
             if ($this->isValidFieldType($type, $className, $name)) {
-                $array[] = $name;
+                $array[$name] = $name;
             } elseif (in_array($name, $includedFields, true)) {
-                $array[] = $name;
+                $array[$name] = $name;
             }
         }
         if (isset($includedClassFieldCombos[$className])) {
             foreach ($includedClassFieldCombos[$className] as $name) {
-                $array[] = $name;
+                $array[$name] = $name;
             }
         }
         // print_r($array);
@@ -141,7 +141,9 @@ class FindClassesAndFields
             $className,
             $array
         );
-        return array_intersect($array, $indexedFields);
+
+        // echo $className.': '.print_r($v, 1).print_r($indexedFields, 1);
+        return array_values(array_intersect($array, $indexedFields));
     }
 
     protected function getAllIndexedFields(string $className, array $dbFields): array
@@ -151,9 +153,7 @@ class FindClassesAndFields
             $indexes = Config::inst()->get($className, 'indexes');
             if (is_array($indexes)) {
                 foreach ($indexes as $key => $field) {
-                    if (isset($dbFields[$key])) {
-                        $this->cache['AllIndexedFields'][$className][$key] = $dbFields[$key];
-                    } elseif (is_array($field)) {
+                    if (is_array($field)) {
                         foreach ($field as $test) {
                             if (is_array($test)) {
                                 if (isset($test['columns'])) {
@@ -171,6 +171,8 @@ class FindClassesAndFields
                                 }
                             }
                         }
+                    } elseif(isset($dbFields[$key])) {
+                        $this->cache['AllIndexedFields'][$className][$key] = $key;
                     }
                 }
             }
