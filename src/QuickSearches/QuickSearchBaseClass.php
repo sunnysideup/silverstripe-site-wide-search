@@ -67,7 +67,7 @@ abstract class QuickSearchBaseClass
     public static function get_list_of_quick_searches(): array
     {
         $array = [
-            'limited' => 'Limited search',
+            'limited' => 'Quick search (limited search)',
         ];
         $availableSearchClasses = self::available_quick_searches();
         if (! empty($availableSearchClasses) > 0) {
@@ -78,7 +78,7 @@ abstract class QuickSearchBaseClass
                 }
             }
         }
-        $array['all'] = 'All (careful - may result in memory and time-out issues)';
+        $array['all'] = 'Full Search (please use with care - this will put a lot of strain on the server)';
         return $array;
     }
 }
