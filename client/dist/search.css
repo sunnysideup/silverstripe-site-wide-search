@@ -77,14 +77,14 @@
     color: #fff;
 }
 .sunny-side-up-quick-search-form input:focus {
-    background-color: var(--success, #008a00);
+    /* background-color: var(--success, #008a00); */
     outline: none;
     border-radius: 0;
     border: none;
     color: #fff;
 }
 .sunny-side-up-quick-search-form input:focus::placeholder {
-    color: #008a00 !important;
+    color: transparent !important;
 }
 .sunny-side-up-quick-search-form .left-search-button {
     display: none;
