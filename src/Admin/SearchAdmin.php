@@ -22,6 +22,10 @@ use SilverStripe\Security\PermissionProvider;
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
 
+/**
+ * Class \Sunnysideup\SiteWideSearch\Admin\SearchAdmin
+ *
+ */
 class SearchAdmin extends LeftAndMain implements PermissionProvider
 {
     protected $listHTML = '';
