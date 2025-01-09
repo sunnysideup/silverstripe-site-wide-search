@@ -72,7 +72,6 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         // if ($form instanceof HTTPResponse) {
         //     return $form;
         // }
-        // $fields->removeByName('LastVisited');
         $fields->push(
             (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
                 ->setAttribute('placeholder', 'e.g. agreement')
@@ -200,8 +199,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             ->setQuickSearchType($this->quickSearchType)
             ->setSearchWholePhrase($this->searchWholePhrase)
             ->setWordsAsString($this->keywords)
-            ->getLinks()
-        ;
+            ->getLinks();
         if ($results->count() === 1) {
             $result = $results->first();
             // files do not re-redirect nicely...
