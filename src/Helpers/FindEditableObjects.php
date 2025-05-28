@@ -279,6 +279,14 @@ class FindEditableObjects
     protected function cleanupLink(?string $link = null): string
     {
         if ($link) {
+            if ($link === ' ' || $link === '/' || $link === '0') {
+                return '';
+            }
+
+            // it is a tag, not a link!
+            if (strpos($link, '<') === 0) {
+                return $link;
+            }
             return Director::absoluteURL((string) $link);
         } else {
             return '';
