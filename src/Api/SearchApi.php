@@ -360,8 +360,7 @@ class SearchApi
                     $array[$className] = $array[$className]
                         ->filterAny($filterAny)
                         ->limit($this->Config()->get('limit_of_count_per_data_object'))
-                        ->columnUnique('ID')
-                    ;
+                        ->columnUnique('ID');
                     if ($this->debug) {
                         $elaps = microtime(true) - $startInner;
                         DB::alteration_message('search for ' . $className . ' taken : ' . $elaps);
@@ -401,8 +400,7 @@ class SearchApi
                     ->filter('LastEdited:GreaterThan', date('Y-m-d H:i:s', $threshold))
                     ->sort(['LastEdited' => 'DESC'])
                     ->limit($limit)
-                    ->column('ID')
-                ;
+                    ->column('ID');
             }
         }
 
@@ -437,8 +435,7 @@ class SearchApi
                     $className = (string) $className;
                     $items = $className::get()
                         ->filter(['ID' => $ids, 'ClassName' => $className])
-                        ->limit($limit)
-                    ;
+                        ->limit($limit);
                     foreach ($items as $item) {
                         if (isset($fullListCheck[$item->ClassName][$item->ID])) {
                             continue;
@@ -475,7 +472,7 @@ class SearchApi
         foreach ($items as $item) {
             if ($item->canView()) {
                 $link = $finder->getLink($item, $this->excludedClasses);
-                $cmsEditLink = $item->canEdit() ? $finder->getCMSEditLink($item) : '';
+                $cmsEditLink = trim($item->canEdit() ? $finder->getCMSEditLink($item) : '');
                 $list->push(
                     ArrayData::create(
                         [

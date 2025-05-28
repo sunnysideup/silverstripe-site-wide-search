@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\SiteWideSearch\Helpers;
 
+use SilverStripe\Control\Controller;
+use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Extensible;
@@ -201,10 +203,16 @@ class FindEditableObjects
         if (isset($this->cache[$type][$dataObject->ClassName]) && false !== $this->cache[$type][$dataObject->ClassName]) {
             $validMethod = $this->cache[$type][$dataObject->ClassName];
             if ($dataObject->hasMethod($validMethod)) {
-                return (string) $dataObject->{$validMethod}();
+                $link = $dataObject->{$validMethod}();
+                if ($link) {
+                    return $this->cleanupLink((string) $link);
+                }
             }
             // last resort - is there a variable with this name?
-            return (string) $dataObject->{$validMethod};
+            $link = $dataObject->{$validMethod};
+            if ($link) {
+                return $this->cleanupLink((string) $link);
+            }
         }
 
         if ($this->classCanBeIncluded($dataObject->ClassName)) {
@@ -220,7 +228,7 @@ class FindEditableObjects
                     if ($outcome) {
                         $this->cache[$type][$dataObject->ClassName] = $validMethod;
 
-                        return (string) $outcome;
+                        return $this->cleanupLink((string) $outcome);
                     }
                 }
             }
@@ -228,7 +236,7 @@ class FindEditableObjects
             if ('valid_methods_edit' === $type && class_exists(CMSEditLinkAPI::class)) {
                 $link = CMSEditLinkAPI::find_edit_link_for_object($dataObject);
                 if ($link !== '' && $link !== '0') {
-                    return $link;
+                    return $this->cleanupLink($link);
                 }
             }
         }
@@ -261,12 +269,22 @@ class FindEditableObjects
             }
 
             if ($outcome) {
-                return $outcome;
+                return $this->cleanupLink((string) $outcome);
             }
         }
 
         return '';
     }
+
+    protected function cleanupLink(?string $link = null): string
+    {
+        if ($link) {
+            return Director::absoluteURL((string) $link);
+        } else {
+            return '';
+        }
+    }
+
 
     protected function getRelations($dataObject): array
     {

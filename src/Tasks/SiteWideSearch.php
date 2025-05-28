@@ -14,7 +14,7 @@ class SiteWideSearch extends BuildTask
 
     protected $description = 'Search the whole site and get a list of links to the matching records';
 
-    protected $enabled = true;
+    protected $enabled = false;
 
     private static $segment = 'search-and-replace';
 
@@ -29,7 +29,7 @@ class SiteWideSearch extends BuildTask
             $word = '';
         }
 
-        $replace = $request->requestVar('replace');
+        $replace = trim($request->requestVar('replace'));
         if (! is_string($replace)) {
             $replace = '';
         }
@@ -56,16 +56,15 @@ class SiteWideSearch extends BuildTask
         $api->setWordsAsString($word);
         $links = $api->getLinks();
         echo '<h2>results</h2>';
-        foreach ($links as $link) {
-            $item = $link->Object;
-            $title = $item->getTitle() . ' (' . $item->i18n_singular_name() . ')';
+        foreach ($links as $item) {
+            $title = $item->Title . ' (' . $item->SingularName . ')';
             if ($debug !== '' && $debug !== '0') {
-                $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: ' . $link->SiteWideSearchSortValue;
+                $title .= ' Class: ' . $item->ClassName . ', ID: ' . $item->ID . ', Sort Value: ' . $item->SiteWideSearchSortValue;
             }
 
-            $cmsEditLink = $link->HasCMSEditLink ? '<a href="' . $link->CMSEditLink . '">✎</a> ...' : 'x  ...';
-            if ($link->HasLink) {
-                DB::alteration_message($cmsEditLink . '<a href="' . $link->Link . '">' . $title . '</a> - ', 'created');
+            $cmsEditLink = $item->HasCMSEditLink ? '<a href="' . $item->CMSEditLink . '">✎</a> ...' : 'x  ...';
+            if ($item->HasLink) {
+                DB::alteration_message($cmsEditLink . '<a href="' . $item->Link . '">' . $title . '</a> - ', 'created');
             } else {
                 DB::alteration_message($cmsEditLink . $title, 'obsolete');
             }
