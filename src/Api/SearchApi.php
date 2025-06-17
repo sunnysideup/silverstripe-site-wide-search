@@ -258,7 +258,7 @@ class SearchApi
 
 
 
-    public function doReplacementURL(string $word, string $replace, ?bool $isURL = false): int
+    public function doReplacementURL(string $word, string $replace): int
     {
         return $this->doReplacement($word, $replace, 'url');
     }
