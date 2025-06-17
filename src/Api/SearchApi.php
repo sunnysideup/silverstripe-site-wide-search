@@ -38,6 +38,8 @@ class SearchApi
 
     protected $searchWholePhrase = false;
 
+    protected $bypassCanMethods = false;
+
     protected $baseClass = DataObject::class;
 
     protected $quickSearchType = 'limited';
@@ -151,6 +153,13 @@ class SearchApi
     public function setSearchWholePhrase(bool $b): SearchApi
     {
         $this->searchWholePhrase = $b;
+
+        return $this;
+    }
+
+    public function setBypassCanMethods(bool $b): SearchApi
+    {
+        $this->bypassCanMethods = $b;
 
         return $this;
     }
@@ -273,7 +282,7 @@ class SearchApi
                 $type = 'url';
             }
             foreach ($this->objects as $item) {
-                if ($item->canEdit()) {
+                if ($item->canEdit() || $this->bypassCanMethods) {
                     $className = $item->ClassName;
                     $fields = $this->getAllValidFields($className);
                     foreach ($fields as $field) {
@@ -298,12 +307,12 @@ class SearchApi
                         $item->{$field} = $new;
                         $this->writeAndPublishIfAppropriate($item);
                         if ($this->showReplacements) {
-                            DB::alteration_message('.... .... ' . $item->ClassName . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field, 'changed');
+                            DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field, 'changed');
                         }
                     }
                 } else {
                     if ($this->showReplacements) {
-                        DB::alteration_message('.... .... ' . $item->ClassName . $item->ID . ' cannot be edited, so no replacement done', 'deleted');
+                        DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' cannot be edited, so no replacement done', 'deleted');
                     }
                 }
             }
@@ -474,7 +483,7 @@ class SearchApi
                         if (isset($fullListCheck[$item->ClassName][$item->ID])) {
                             continue;
                         }
-                        if ($item->canView() || 1 === 1) {
+                        if ($item->canView() || $this->bypassCanMethods) {
                             $fullListCheck[$item->ClassName][$item->ID] = true;
                             $this->objects[] = $item;
                         } else {
@@ -504,7 +513,7 @@ class SearchApi
 
         $items = $this->turnArrayIntoObjects($matches);
         foreach ($items as $item) {
-            if ($item->canView()) {
+            if ($item->canView() || $this->bypassCanMethods) {
                 $link = $finder->getLink($item);
                 $cmsEditLink = trim($item->canEdit() ? $finder->getCMSEditLink($item) : '');
                 $list->push(
