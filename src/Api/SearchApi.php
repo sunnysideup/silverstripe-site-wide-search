@@ -289,7 +289,7 @@ class SearchApi
     public function doReplacement(string $word, string $replace, ?string $type = ''): int
     {
         $count = 0;
-        $dryRunNote = $this->dryRunForReplacement ? ' (DRY RUN)' : '';
+        $dryRunNote = $this->dryRunForReplacement ? ' (DRY RUN) ' : '';
         if ($word !== '' && $word !== '0') {
             $this->buildCache($word);
             $replace = $this->securityCheckInput($replace);
