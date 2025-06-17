@@ -246,12 +246,22 @@ class SearchApi
         return $list;
     }
 
-    public function doReplacement(string $word, string $replace): int
+
+
+    public function doReplacementURL(string $word, string $replace, ?bool $isURL = false): int
+    {
+        return $this->doReplacement($word, $replace, 'url');
+    }
+
+    public function doReplacement(string $word, string $replace, ?string $type = ''): int
     {
         $count = 0;
         if ($word !== '' && $word !== '0') {
             $this->buildCache($word);
             $replace = $this->securityCheckInput($replace);
+            if (strpos('://', $word) !== false) {
+                $type = 'url';
+            }
             foreach ($this->objects as $item) {
                 $className = $item->ClassName;
                 if ($item->canEdit()) {
@@ -260,15 +270,26 @@ class SearchApi
                         if (! $this->includeFieldTest($className, $field)) {
                             continue;
                         }
-                        $new = str_replace($word, $replace, $item->{$field});
-                        if ($new !== $item->{$field}) {
-                            ++$count;
-                            $item->{$field} = $new;
-                            $this->writeAndPublishIfAppropriate($item);
+                        if ($type === 'url') {
+                            $escapedFrom = preg_quote($word, '/');
+                            // It replaces exact matches of $escapedFrom (with optional trailing slash) in $item->{$field} only if followed by space, quote, ?, #, or end of string, preserving the slash if present.
+                            $new = preg_replace_callback(
+                                '/\b' . $escapedFrom . '(\/?)(?=[\s"\']|\?|#|$)/',
+                                fn($matches) => $replace . ($matches[1] ?? ''),
+                                $item->{$field}
+                            );
+                        } else {
+                            $new = str_replace($word, $replace, $item->{$field});
+                        }
+                        if ($new === $item->{$field}) {
+                            continue;
+                        }
+                        ++$count;
+                        $item->{$field} = $new;
+                        $this->writeAndPublishIfAppropriate($item);
 
-                            if ($this->debug) {
-                                DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
-                            }
+                        if ($this->debug) {
+                            DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
                         }
                     }
                 }

@@ -71,8 +71,8 @@ class SiteWideSearch extends BuildTask
         }
 
         if ($replace !== '' && $replace !== '0') {
-            $api->doReplacement($word, $replace);
             $api->setDebug(true);
+            $api->doReplacement($word, $replace);
         }
     }
 }
