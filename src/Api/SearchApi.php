@@ -289,6 +289,7 @@ class SearchApi
     public function doReplacement(string $word, string $replace, ?string $type = ''): int
     {
         $count = 0;
+        $dryRunNote = $this->dryRunForReplacement ? ' (DRY RUN)' : '';
         if ($word !== '' && $word !== '0') {
             $this->buildCache($word);
             $replace = $this->securityCheckInput($replace);
@@ -325,7 +326,13 @@ class SearchApi
                         }
                         ++$count;
                         if ($this->showReplacements) {
-                            DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field, 'changed');
+                            DB::alteration_message(
+                                '.... .... ' . $dryRunNote .
+                                    $item->ClassName . '.' .  $item->ID .
+                                    ' replace ' . $word . ' with ' . $replace .
+                                    ' (' . $type . ') in field ' . $field,
+                                'changed'
+                            );
                         }
                         if ($this->dryRunForReplacement) {
                             continue;
