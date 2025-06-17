@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\SiteWideSearch\Api;
 
+use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Configurable;
 use SilverStripe\Core\Convert;
@@ -159,8 +160,11 @@ class SearchApi
 
     public function setBypassCanMethods(bool $b): SearchApi
     {
-        $this->bypassCanMethods = $b;
-
+        if (! Director::is_cli()) {
+            user_error('setBypassCanMethods() is only available in CLI mode. Use with caution as it will bypass all canView() and canEdit() checks.', E_USER_WARNING);
+        } else {
+            $this->bypassCanMethods = $b;
+        }
         return $this;
     }
 
