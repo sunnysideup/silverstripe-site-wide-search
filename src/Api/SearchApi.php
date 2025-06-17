@@ -37,6 +37,8 @@ class SearchApi
 
     protected $isQuickSearch = false;
 
+    protected $dryRunForReplacement = false;
+
     protected $searchWholePhrase = false;
 
     protected $bypassCanMethods = false;
@@ -150,6 +152,14 @@ class SearchApi
 
         return $this;
     }
+
+    public function setDryRunForReplacement(bool $b): SearchApi
+    {
+        $this->dryRunForReplacement = $b;
+
+        return $this;
+    }
+
 
     public function setSearchWholePhrase(bool $b): SearchApi
     {
@@ -290,12 +300,18 @@ class SearchApi
                     $className = $item->ClassName;
                     $fields = $this->getAllValidFields($className);
                     foreach ($fields as $field) {
+                        if (! $item->{$field} || ! is_string($item->{$field})) {
+                            continue;
+                        }
+                        if (strpos($item->{$field}, $word) === false) {
+                            continue;
+                        }
                         if (! $this->includeFieldTest($className, $field)) {
                             continue;
                         }
                         if ($type === 'url') {
                             $escapedFrom = preg_quote($word, '/');
-                            // It replaces exact matches of $escapedFrom (with optional trailing slash) in $item->{$field} only if followed by space, quote, ?, #, or end of string, preserving the slash if present.
+                            // It replaces exact matches of $escapedFrom in $item->{$field} only if it is full word, followed by space, quote, ?, #, or end of string, preserving the slash if present.
                             $new = preg_replace_callback(
                                 '/\b' . $escapedFrom . '(\/?)(?=[\s"\']|\?|#|$)/',
                                 fn($matches) => $replace . ($matches[1] ?? ''),
@@ -308,11 +324,14 @@ class SearchApi
                             continue;
                         }
                         ++$count;
-                        $item->{$field} = $new;
-                        $this->writeAndPublishIfAppropriate($item);
                         if ($this->showReplacements) {
                             DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field, 'changed');
                         }
+                        if ($this->dryRunForReplacement) {
+                            continue;
+                        }
+                        $item->{$field} = $new;
+                        $this->writeAndPublishIfAppropriate($item);
                     }
                 } else {
                     if ($this->showReplacements) {
