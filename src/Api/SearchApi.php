@@ -228,17 +228,17 @@ class SearchApi
         return $this;
     }
 
-    public function getLinks(?string $word = ''): ArrayList
+    public function getLinks(?string $word = '', ?string $type = ''): ArrayList
     {
-        return $this->getLinksInner($word);
+        return $this->getLinksInner($word, $type);
     }
 
-    protected function getLinksInner(?string $word = ''): ArrayList
+    protected function getLinksInner(?string $word = '', ?string $type = ''): ArrayList
     {
         $this->initCache();
 
         //always do first ...
-        $matches = $this->getMatches($word);
+        $matches = $this->getMatches($word, $type);
 
         $list = $this->turnMatchesIntoList($matches);
 
@@ -289,7 +289,7 @@ class SearchApi
                         $this->writeAndPublishIfAppropriate($item);
 
                         if ($this->debug) {
-                            DB::alteration_message('<h2>Match:  ' . $item->ClassName . $item->ID . '</h2>' . $new . '<hr />');
+                            DB::alteration_message('' . $item->ClassName . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field);
                         }
                     }
                 }
@@ -330,7 +330,7 @@ class SearchApi
         }
     }
 
-    protected function getMatches(?string $word = ''): array
+    protected function getMatches(?string $word = '', ?string $type = ''): array
     {
         $startInner = 0;
         $startOuter = 0;
