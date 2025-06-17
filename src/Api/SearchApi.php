@@ -32,6 +32,8 @@ class SearchApi
 
     protected $debug = false;
 
+    protected $showReplacements = false;
+
     protected $isQuickSearch = false;
 
     protected $searchWholePhrase = false;
@@ -77,6 +79,7 @@ class SearchApi
         ChangeSetItem::class,
         RememberLoginHash::class,
         LoginSession::class,
+        'SilverStripe\\UserForms\\Model\\Submission\\SubmittedFormField'
     ];
 
     private static $default_exclude_fields = [
@@ -99,6 +102,13 @@ class SearchApi
     public function setDebug(bool $b): SearchApi
     {
         $this->debug = $b;
+
+        return $this;
+    }
+
+    public function setShowReplacements(bool $b): SearchApi
+    {
+        $this->showReplacements = $b;
 
         return $this;
     }
@@ -217,7 +227,7 @@ class SearchApi
     //     Environment::increaseMemoryLimitTo(-1);
     // }
 
-    protected $cacheHasBeenBuilt;
+    protected string $cacheHasBeenBuilt = '';
 
     public function buildCache(?string $word = ''): SearchApi
     {
@@ -263,8 +273,8 @@ class SearchApi
                 $type = 'url';
             }
             foreach ($this->objects as $item) {
-                $className = $item->ClassName;
                 if ($item->canEdit()) {
+                    $className = $item->ClassName;
                     $fields = $this->getAllValidFields($className);
                     foreach ($fields as $field) {
                         if (! $this->includeFieldTest($className, $field)) {
@@ -287,10 +297,13 @@ class SearchApi
                         ++$count;
                         $item->{$field} = $new;
                         $this->writeAndPublishIfAppropriate($item);
-
-                        if ($this->debug) {
-                            DB::alteration_message('' . $item->ClassName . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field);
+                        if ($this->showReplacements) {
+                            DB::alteration_message('.... .... ' . $item->ClassName . $item->ID . ' replace ' . $word . ' with ' . $replace . ' (' . $type . ') in field ' . $field, 'changed');
                         }
+                    }
+                } else {
+                    if ($this->showReplacements) {
+                        DB::alteration_message('.... .... ' . $item->ClassName . $item->ID . ' cannot be edited, so no replacement done', 'deleted');
                     }
                 }
             }
@@ -461,7 +474,7 @@ class SearchApi
                         if (isset($fullListCheck[$item->ClassName][$item->ID])) {
                             continue;
                         }
-                        if ($item->canView()) {
+                        if ($item->canView() || 1 === 1) {
                             $fullListCheck[$item->ClassName][$item->ID] = true;
                             $this->objects[] = $item;
                         } else {
