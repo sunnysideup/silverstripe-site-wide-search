@@ -134,7 +134,7 @@ class FindClassesAndFields
             }
         }
         // print_r($array);
-        if ($isQuickSearch === false) {
+        if ((bool) $isQuickSearch === false) {
             return $array;
         }
         $indexedFields = $this->getAllIndexedFields(
@@ -171,7 +171,7 @@ class FindClassesAndFields
                                 }
                             }
                         }
-                    } elseif(isset($dbFields[$key])) {
+                    } elseif (isset($dbFields[$key])) {
                         $this->cache['AllIndexedFields'][$className][$key] = $key;
                     }
                 }
