@@ -269,7 +269,7 @@ class FindEditableObjects
             }
 
             if ($outcome) {
-                return $this->cleanupLink((string) $outcome);
+                return $this->cleanupLink($outcome);
             }
         }
 
@@ -279,7 +279,7 @@ class FindEditableObjects
     protected function cleanupLink(?string $link = null): string
     {
         if ($link) {
-            if ($link === ' ' || $link === '/' || $link === '0') {
+            if (in_array($link, [' ', '/', '0'], true)) {
                 return '';
             }
 
@@ -287,7 +287,7 @@ class FindEditableObjects
             if (strpos($link, '<') === 0) {
                 return $link;
             }
-            return Director::absoluteURL((string) $link);
+            return Director::absoluteURL($link);
         } else {
             return '';
         }

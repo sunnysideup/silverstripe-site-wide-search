@@ -340,10 +340,8 @@ class SearchApi
                         $item->{$field} = $new;
                         $this->writeAndPublishIfAppropriate($item);
                     }
-                } else {
-                    if ($this->showReplacements) {
-                        DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' cannot be edited, so no replacement done', 'deleted');
-                    }
+                } elseif ($this->showReplacements) {
+                    DB::alteration_message('.... .... ' . $item->ClassName . '.' . $item->ID . ' cannot be edited, so no replacement done', 'deleted');
                 }
             }
         }
