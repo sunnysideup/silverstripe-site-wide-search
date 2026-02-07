@@ -84,7 +84,7 @@ class SearchApi
         ChangeSetItem::class,
         RememberLoginHash::class,
         LoginSession::class,
-        'SilverStripe\\UserForms\\Model\\Submission\\SubmittedFormField'
+        'SilverStripe\\UserForms\\Model\\Submission\\SubmittedFormField',
     ];
 
     private static $default_exclude_fields = [
@@ -159,7 +159,6 @@ class SearchApi
 
         return $this;
     }
-
 
     public function setSearchWholePhrase(bool $b): SearchApi
     {
@@ -279,8 +278,6 @@ class SearchApi
         return $list;
     }
 
-
-
     public function doReplacementURL(string $word, string $replace): int
     {
         return $this->doReplacement($word, $replace, 'url');
@@ -315,7 +312,7 @@ class SearchApi
                             // It replaces exact matches of $escapedFrom in $item->{$field} only if it is full word, followed by space, quote, ?, #, or end of string, preserving the slash if present.
                             $new = preg_replace_callback(
                                 '/\b' . $escapedFrom . '(\/?)(?=[\s"\']|\?|#|$)/',
-                                fn($matches) => $replace . ($matches[1] ?? ''),
+                                fn ($matches) => $replace . ($matches[1] ?? ''),
                                 $item->{$field}
                             );
                         } else {
@@ -328,7 +325,7 @@ class SearchApi
                         if ($this->showReplacements) {
                             DB::alteration_message(
                                 '.... .... ' . $dryRunNote .
-                                    $item->ClassName . '.' .  $item->ID .
+                                    $item->ClassName . '.' . $item->ID .
                                     ' replace ' . $word . ' with ' . $replace .
                                     ' (' . $type . ') in field ' . $field,
                                 'changed'

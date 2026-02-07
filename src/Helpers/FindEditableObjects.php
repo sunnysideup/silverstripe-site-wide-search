@@ -2,7 +2,6 @@
 
 namespace Sunnysideup\SiteWideSearch\Helpers;
 
-use SilverStripe\Control\Controller;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\Config\Config;
 use SilverStripe\Core\Config\Configurable;
@@ -292,7 +291,6 @@ class FindEditableObjects
             return '';
         }
     }
-
 
     protected function getRelations($dataObject): array
     {

@@ -24,7 +24,6 @@ use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
 
 /**
  * Class \Sunnysideup\SiteWideSearch\Admin\SearchAdmin
- *
  */
 class SearchAdmin extends LeftAndMain implements PermissionProvider
 {
