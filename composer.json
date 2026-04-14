@@ -1,42 +1,36 @@
 {
-    "name": "sunnysideup/site-wide-search",
-    "type": "silverstripe-vendormodule",
-    "description": "Search your entire silverstripe site!",
-    "keywords": [
-        "Silverstripe-CMS",
-        "CMS",
-        "Silverstripe",
-        "search",
-        "find",
-        "site wide",
-        "DataObjects"
-    ],
-    "license": "BSD-3-Clause",
-    "authors": [
-        {
-            "name": "Nicolaas Francken",
-            "email": "modules@sunnysideup.co.nz",
-            "role": "lead developer"
-        }
-    ],
-    "require": {
-        "silverstripe/recipe-core": "^6.0"
-    },
-    "autoload": {
-        "psr-4": {
-            "Sunnysideup\\SiteWideSearch\\": "src/"
-        }
-    },
-    "extra": {
-        "expose": [
-            "client/dist"
-        ]
-    },
-    "yet-to-update": {
-        "sunnysideup/cms_edit_link_field": {
-            "section": "require",
-            "current": "^5.0-dev",
-            "reason": "no-compatible-stable-release"
-        }
+  "name": "sunnysideup/site-wide-search",
+  "type": "silverstripe-vendormodule",
+  "description": "Search your entire silverstripe site!",
+  "keywords": [
+    "Silverstripe-CMS",
+    "CMS",
+    "Silverstripe",
+    "search",
+    "find",
+    "site wide",
+    "DataObjects"
+  ],
+  "license": "BSD-3-Clause",
+  "authors": [
+    {
+      "name": "Nicolaas Francken",
+      "email": "modules@sunnysideup.co.nz",
+      "role": "lead developer"
     }
+  ],
+  "require": {
+    "silverstripe/recipe-core": "^4.0 || ^5.0",
+    "sunnysideup/cms_edit_link_field": "5.x-dev"
+  },
+  "autoload": {
+    "psr-4": {
+      "Sunnysideup\\SiteWideSearch\\": "src/"
+    }
+  },
+  "extra": {
+    "expose": [
+      "client/dist"
+    ]
+  }
 }
