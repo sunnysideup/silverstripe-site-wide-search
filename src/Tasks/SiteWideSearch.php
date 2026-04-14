@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace Sunnysideup\SiteWideSearch\Tasks;
 
 use SilverStripe\Core\Convert;
@@ -10,7 +12,7 @@ use Sunnysideup\SiteWideSearch\Api\SearchApi;
 
 class SiteWideSearch extends BuildTask
 {
-    protected $title = 'Search the whole site for a word or phrase';
+    protected string $title = 'Search the whole site for a word or phrase';
 
     protected $description = 'Search the whole site and get a list of links to the matching records';
 
@@ -29,7 +31,7 @@ class SiteWideSearch extends BuildTask
             $word = '';
         }
 
-        $replace = trim($request->requestVar('replace'));
+        $replace = trim((string) $request->requestVar('replace'));
         if (! is_string($replace)) {
             $replace = '';
         }

@@ -13,12 +13,9 @@ class FindClassesAndFields
 {
     use Injectable;
 
-    /**
-     * @var string
-     */
-    private const CACHE_NAME = 'SiteWideSearchApi';
+    private const string CACHE_NAME = 'SiteWideSearchApi';
 
-    private const BASIC_FIELDS = [
+    private const array BASIC_FIELDS = [
         'ID' => 'Int',
         'Created' => 'DBDatetime',
         'LastEdited' => 'DBDatetime',
@@ -88,6 +85,7 @@ class FindClassesAndFields
         if (self::$singleton === null) {
             self::$singleton = Injector::inst()->get(static::class);
         }
+
         self::$singleton->setBaseClass($baseClass);
         return self::$singleton;
     }
@@ -120,6 +118,7 @@ class FindClassesAndFields
                 self::BASIC_FIELDS
             );
         }
+
         $array = [];
         foreach ($this->cache['AllValidFields'][$className] as $name => $type) {
             if ($this->isValidFieldType($type, $className, $name)) {
@@ -128,15 +127,18 @@ class FindClassesAndFields
                 $array[$name] = $name;
             }
         }
+
         if (isset($includedClassFieldCombos[$className])) {
             foreach ($includedClassFieldCombos[$className] as $name) {
                 $array[$name] = $name;
             }
         }
+
         // print_r($array);
         if ((bool) $isQuickSearch === false) {
             return $array;
         }
+
         $indexedFields = $this->getAllIndexedFields(
             $className,
             $array
@@ -163,7 +165,7 @@ class FindClassesAndFields
                                 }
                             }
 
-                            $testArray = explode(',', $test);
+                            $testArray = explode(',', (string) $test);
                             foreach ($testArray as $testInner) {
                                 $testInner = trim($testInner);
                                 if (isset($dbFields[$testInner])) {

@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\SiteWideSearch\Admin;
 
+use Override;
+use SilverStripe\Model\List\ArrayList;
 use SilverStripe\Admin\LeftAndMain;
 use SilverStripe\Assets\File;
 use SilverStripe\Control\HTTPResponse;
@@ -16,7 +18,6 @@ use SilverStripe\Forms\HTMLReadonlyField;
 use SilverStripe\Forms\OptionsetField;
 use SilverStripe\Forms\TextField;
 use SilverStripe\Forms\ToggleCompositeField;
-use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\FieldType\DBField;
 use SilverStripe\Security\PermissionProvider;
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
@@ -55,14 +56,17 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         'CMS_ACCESS_SITE_WIDE_SEARCH',
     ];
 
+    #[Override]
     protected function init()
     {
         if ($this->request->param('Action') && empty($this->request->postVars())) {
             $this->redirect('/admin/find');
         }
+
         parent::init();
     }
 
+    #[Override]
     public function getEditForm($id = null, $fields = null)
     {
         $form = parent::getEditForm($id, $fields);
@@ -72,11 +76,11 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         //     return $form;
         // }
         $fields->push(
-            (new TextField('Keywords', 'Keyword(s)', $this->keywords ?? ''))
+            (TextField::create('Keywords', 'Keyword(s)', $this->keywords ?? ''))
                 ->setAttribute('placeholder', 'e.g. agreement')
         );
         $fields->push(
-            (new HiddenField('IsSubmitHiddenField', 'IsSubmitHiddenField', 1))
+            (HiddenField::create('IsSubmitHiddenField', 'IsSubmitHiddenField', 1))
         );
 
         $options = QuickSearchBaseClass::get_list_of_quick_searches();
@@ -89,17 +93,17 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         );
 
         $fields->push(
-            (new CheckboxField('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
+            (CheckboxField::create('SearchWholePhrase', 'Search exact phrase', $this->searchWholePhrase))
                 ->setDescription('If ticked, only items will be included that includes the whole phrase (e.g. "New Zealand", rather than anything that includes "New" OR "Zealand")')
         );
         $fields->push(
             ToggleCompositeField::create(
                 'ReplaceToggle',
-                _t(__CLASS__ . '.ReplaceToggle', 'Replace with ... (optional - make a backup first!)'),
+                _t(self::class . '.ReplaceToggle', 'Replace with ... (optional - make a backup first!)'),
                 [
-                    (new CheckboxField('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
+                    (CheckboxField::create('ApplyReplace', 'Run replace (please make sure to make a backup first!)', $this->applyReplace))
                         ->setDescription('Check this to replace the searched value set above with its replacement value. Note that searches ignore uppercase / lowercase, but replace actions will only search and replace values with the same upper / lowercase.'),
-                    (new TextField('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
+                    (TextField::create('ReplaceWith', 'Replace (optional - careful!)', $this->replace ?? ''))
                         ->setAttribute('placeholder', 'e.g. contract - make sure to also tick checkbox below'),
                 ]
             )->setHeadingLevel(4)
@@ -107,7 +111,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
         if (! $this->getRequest()->requestVar('Keywords')) {
             $lastResults = $this->lastSearchResults();
-            $resultsTitle = $lastResults instanceof \SilverStripe\ORM\ArrayList ? 'Last Results' : 'Last Edited';
+            $resultsTitle = $lastResults instanceof ArrayList ? 'Last Results' : 'Last Edited';
             $this->listHTML = $this->renderWith(self::class . '_Results');
         } else {
             $resultsTitle = 'Search Results';
@@ -116,7 +120,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         $form->setFormMethod('get', false);
 
         $fields->push(
-            (new HTMLReadonlyField('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
+            (HTMLReadonlyField::create('List', $resultsTitle, DBField::create_field('HTMLText', $this->listHTML)))
         );
         $form->Actions()->push(
             FormAction::create('search', 'Find')
@@ -154,13 +158,14 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
      *
      * @param bool $unlinked
      *
-     * @return ArrayList
+     * @return \SilverStripe\Model\List\ArrayList
      */
+    #[Override]
     public function Breadcrumbs($unlinked = false)
     {
         $items = parent::Breadcrumbs($unlinked);
 
-        return new ArrayList([$items[0]]);
+        return ArrayList::create([$items[0]]);
     }
 
     public function IsQuickSearch(): bool
@@ -175,10 +180,11 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
         Environment::increaseMemoryLimitTo(-1);
         if (empty($this->rawData)) {
             $lastResults = $this->lastSearchResults();
-            if ($lastResults instanceof \SilverStripe\ORM\ArrayList) {
+            if ($lastResults instanceof ArrayList) {
                 return $lastResults;
             }
         }
+
         $this->keywords = $this->workOutString('Keywords', $this->rawData);
         $this->quickSearchType = $this->workOutString('QuickSearchType', $this->rawData, $this->bestSearchType());
         $this->searchWholePhrase = $this->workOutBoolean('SearchWholePhrase', $this->rawData, false);
@@ -207,11 +213,13 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 $this->redirect($result->CMSEditLink);
             }
         }
+
         // Accessing the session
         $session = $this->getRequest()->getSession();
         if ($session) {
             $session->set('QuickSearchLastResults', serialize($results->toArray()));
         }
+
         return $results;
     }
 
@@ -222,9 +230,10 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
 
     protected function workOutString(string $fieldName, ?array $data = null, ?string $default = ''): string
     {
-        return trim($data[$fieldName] ?? $default);
+        return trim((string) ($data[$fieldName] ?? $default));
     }
 
+    #[Override]
     public function providePermissions()
     {
         return [
@@ -249,9 +258,11 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                 $session->set('QuickSearchType', '');
             }
         }
+
         if (! $this->quickSearchType) {
             $this->quickSearchType = $this->Config()->get('default_quick_search_type');
         }
+
         return (string) $this->quickSearchType;
     }
 
@@ -270,10 +281,12 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
                     foreach ($array as $item) {
                         $al->push($item);
                     }
+
                     return $al;
                 }
             }
         }
+
         return null;
     }
 }

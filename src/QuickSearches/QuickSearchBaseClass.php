@@ -78,6 +78,7 @@ abstract class QuickSearchBaseClass
                 }
             }
         }
+
         $array['all'] = 'Full Search (please use with care - this will put a lot of strain on the server)';
         return $array;
     }
