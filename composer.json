@@ -20,8 +20,7 @@
         }
     ],
     "require": {
-        "silverstripe/recipe-core": "^4.0 || ^5.0",
-        "sunnysideup/cms_edit_link_field": "^5.0-dev"
+        "silverstripe/recipe-core": "^6.0"
     },
     "autoload": {
         "psr-4": {
@@ -32,5 +31,12 @@
         "expose": [
             "client/dist"
         ]
+    },
+    "yet-to-update": {
+        "sunnysideup/cms_edit_link_field": {
+            "section": "require",
+            "current": "^5.0-dev",
+            "reason": "no-compatible-stable-release"
+        }
     }
 }
