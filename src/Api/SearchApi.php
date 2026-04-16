@@ -2,6 +2,8 @@
 
 namespace Sunnysideup\SiteWideSearch\Api;
 
+use SilverStripe\Model\List\ArrayList;
+use SilverStripe\Model\ArrayData;
 use SilverStripe\Control\Director;
 use SilverStripe\Core\ClassInfo;
 use SilverStripe\Core\Config\Configurable;
@@ -9,7 +11,6 @@ use SilverStripe\Core\Convert;
 use SilverStripe\Core\Extensible;
 use SilverStripe\Core\Injector\Injectable;
 use SilverStripe\Core\Injector\Injector;
-use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\DataObject;
 use SilverStripe\ORM\DB;
 use SilverStripe\ORM\FieldType\DBDatetime;
@@ -21,7 +22,6 @@ use SilverStripe\SessionManager\Models\LoginSession;
 use SilverStripe\Versioned\ChangeSet;
 use SilverStripe\Versioned\ChangeSetItem;
 use SilverStripe\Versioned\Versioned;
-use SilverStripe\View\ArrayData;
 use Sunnysideup\SiteWideSearch\Helpers\FindClassesAndFields;
 use Sunnysideup\SiteWideSearch\Helpers\FindEditableObjects;
 
@@ -174,6 +174,7 @@ class SearchApi
         } else {
             $this->bypassCanMethods = $b;
         }
+
         return $this;
     }
 
@@ -257,6 +258,7 @@ class SearchApi
             $this->getLinksInner($word);
             $this->cacheHasBeenBuilt = $word;
         }
+
         return $this;
     }
 
@@ -290,9 +292,10 @@ class SearchApi
         if ($word !== '' && $word !== '0') {
             $this->buildCache($word);
             $replace = $this->securityCheckInput($replace);
-            if (strpos('://', $word) !== false) {
+            if (str_contains('://', $word)) {
                 $type = 'url';
             }
+
             foreach ($this->objects as $item) {
                 if ($item->canEdit() || $this->bypassCanMethods) {
                     $className = $item->ClassName;
@@ -301,12 +304,15 @@ class SearchApi
                         if (! $item->{$field} || ! is_string($item->{$field})) {
                             continue;
                         }
-                        if (strpos($item->{$field}, $word) === false) {
+
+                        if (!str_contains($item->{$field}, $word)) {
                             continue;
                         }
+
                         if (! $this->includeFieldTest($className, $field)) {
                             continue;
                         }
+
                         if ($type === 'url') {
                             $escapedFrom = preg_quote($word, '/');
                             // It replaces exact matches of $escapedFrom in $item->{$field} only if it is full word, followed by space, quote, ?, #, or end of string, preserving the slash if present.
@@ -318,9 +324,11 @@ class SearchApi
                         } else {
                             $new = str_replace($word, $replace, $item->{$field});
                         }
+
                         if ($new === $item->{$field}) {
                             continue;
                         }
+
                         ++$count;
                         if ($this->showReplacements) {
                             DB::alteration_message(
@@ -331,9 +339,11 @@ class SearchApi
                                 'changed'
                             );
                         }
+
                         if ($this->dryRunForReplacement) {
                             continue;
                         }
+
                         $item->{$field} = $new;
                         $this->writeAndPublishIfAppropriate($item);
                     }
@@ -371,6 +381,7 @@ class SearchApi
             if ($canBePublished) {
                 $item->publishSingle();
             }
+
             Versioned::set_stage($myStage);
         } else {
             $item->write();
@@ -384,12 +395,14 @@ class SearchApi
         if ($this->debug) {
             $startOuter = microtime(true);
         }
+
         $this->workOutInclusionsAndExclusions();
 
         // important to do this first
         if ($word) {
             $this->setWordsAsString($word);
         }
+
         $this->workOutWordsForSearching();
         if ($this->debug) {
             DB::alteration_message('Words searched for ' . print_r($this->words, 1));
@@ -410,20 +423,24 @@ class SearchApi
                     if (! $this->includeFieldTest($className, $field)) {
                         continue;
                     }
+
                     $filterAny[$field . ':PartialMatch'] = $this->words;
                     if ($this->debug) {
                         DB::alteration_message(' ... ... Searching in ' . $className . '.' . $field);
                     }
                 }
+
                 if ([] !== $filterAny) {
                     if ($this->debug) {
                         $startInner = microtime(true);
                         DB::alteration_message(' ... Filter: ' . implode(', ', array_keys($filterAny)));
                     }
+
                     $defaultList = $this->getDefaultList($className);
                     if ($defaultList === []) {
                         $array[$className] = $className::get();
                     }
+
                     $array[$className] = $array[$className]->filter(['ClassName' => $className]);
                     $array[$className] = $array[$className]
                         ->filterAny($filterAny)
@@ -508,6 +525,7 @@ class SearchApi
                         if (isset($fullListCheck[$item->ClassName][$item->ID])) {
                             continue;
                         }
+
                         if ($item->canView() || $this->bypassCanMethods) {
                             $fullListCheck[$item->ClassName][$item->ID] = true;
                             $this->objects[] = $item;
@@ -560,6 +578,7 @@ class SearchApi
                 );
             }
         }
+
         $finder->saveCache();
 
         if (! empty($this->sortOverride)) {
@@ -608,9 +627,9 @@ class SearchApi
 
                 // the full string / any of the words are present?
                 if (false === $done) {
-                    $pos = strpos($fieldValuesAll, $word);
+                    $pos = strpos($fieldValuesAll, (string) $word);
                     if (false !== $pos) {
-                        $score += (($pos + 1) / strlen($word)) * 1000;
+                        $score += (($pos + 1) / strlen((string) $word)) * 1000;
                         $done = true;
                     }
                 }
@@ -620,13 +639,14 @@ class SearchApi
                     $score += 1000;
                     $allMatch = true;
                     foreach ($this->words as $tmpWord) {
-                        $pos = strpos($fieldValuesAll, $tmpWord);
+                        $pos = strpos($fieldValuesAll, (string) $tmpWord);
                         if (false === $pos) {
                             $allMatch = false;
 
                             break;
                         }
                     }
+
                     if ($allMatch) {
                         $done = true;
                     }
@@ -636,7 +656,7 @@ class SearchApi
 
         //the older the item, the higher the scoare
         //1104622247 = 1 jan 2005
-        return $score + (1 / (strtotime($item->LastEdited) - 1104537600));
+        return $score + (1 / (strtotime((string) $item->LastEdited) - 1104537600));
     }
 
     protected function workOutInclusionsAndExclusions()
@@ -692,8 +712,8 @@ class SearchApi
             user_error('No word has been provided');
         }
 
-        $this->words = array_map('trim', $this->words);
-        $this->words = array_map('strtolower', $this->words);
+        $this->words = array_map(trim(...), $this->words);
+        $this->words = array_map(strtolower(...), $this->words);
         $this->words = array_unique($this->words);
         $this->words = array_filter($this->words);
     }
@@ -714,14 +734,18 @@ class SearchApi
             if ($this->debug) {
                 DB::alteration_message(' ... Skipping as not included ' . $className);
             }
+
             return false;
         }
+
         if (count($this->excludedClassesWithSubClassess) && in_array($className, $this->excludedClassesWithSubClassess, true)) {
             if ($this->debug) {
                 DB::alteration_message(' ... Skipping as excluded ' . $className);
             }
+
             return false;
         }
+
         if ($this->debug) {
             DB::alteration_message(' ... including ' . $className);
         }
@@ -748,6 +772,7 @@ class SearchApi
         foreach ($classes as $class) {
             $toAdd = array_merge($toAdd, ClassInfo::subclassesFor($class, false));
         }
+
         return array_unique(array_merge($classes, $toAdd));
     }
 

@@ -19,10 +19,7 @@ class FindEditableObjects
     use Configurable;
     use Injectable;
 
-    /**
-     * @var string
-     */
-    private const CACHE_NAME = 'FindEditableObjectsCache';
+    private const string CACHE_NAME = 'FindEditableObjectsCache';
 
     protected $additionalCacheName = '';
 
@@ -207,6 +204,7 @@ class FindEditableObjects
                     return $this->cleanupLink((string) $link);
                 }
             }
+
             // last resort - is there a variable with this name?
             $link = $dataObject->{$validMethod};
             if ($link) {
@@ -257,10 +255,12 @@ class FindEditableObjects
                 } else {
                     user_error('Relation ' . print_r($relationName, 1) . ' does not exist on ' . $dataObject->ClassName . ' Relations are: ' . print_r($this->getRelations($dataObject), 1), E_USER_NOTICE);
                 }
+
                 if ($rels) {
                     if ($rels instanceof DataList && ! $rels instanceof UnsavedRelationList) {
                         $rels = $rels->first();
                     }
+
                     if ($rels && $rels instanceof DataObject && $rels->exists()) {
                         $outcome = $this->checkForValidMethods($rels, $type, $relationDepth);
                     }
@@ -283,9 +283,10 @@ class FindEditableObjects
             }
 
             // it is a tag, not a link!
-            if (strpos($link, '<') === 0) {
+            if (str_starts_with($link, '<')) {
                 return $link;
             }
+
             return Director::absoluteURL($link);
         } else {
             return '';
@@ -330,8 +331,10 @@ class FindEditableObjects
             if (! class_exists($dataObjectClassName)) {
                 return false;
             }
+
             return ! in_array($dataObjectClassName, $this->excludedClasses, true);
         }
+
         user_error('Please set excludedClasses', E_USER_NOTICE);
         return false;
     }
