@@ -45,7 +45,7 @@ Sunnysideup\SiteWideSearch\Admin\SearchAdmin:
   default_quick_search_type: Website\App\QuickSearches\MyQuickSearch
 ```
 
-And then creat your own quick search class:
+And then create your own quick search class:
 
 ```php
 <?php
@@ -86,8 +86,6 @@ Here is another example:
 namespace Website\App\QuickSearches;
 
 
-use Website\App\MyDataObject;
-use SilverStripe\Core\ClassInfo;
 use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
 
 class QuickSearchOrder extends QuickSearchBaseClass
