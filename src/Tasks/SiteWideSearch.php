@@ -46,7 +46,7 @@ class SiteWideSearch extends BuildTask
             $replace = '';
         }
 
-        if (empty($word)) {
+        if ($word === '' || $word === '0') {
             $output->writeln('<error>Please provide a search word using --word option</error>');
             return Command::FAILURE;
         }
