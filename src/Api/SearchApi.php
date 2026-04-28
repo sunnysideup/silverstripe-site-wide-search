@@ -2,6 +2,7 @@
 
 namespace Sunnysideup\SiteWideSearch\Api;
 
+use SilverStripe\UserForms\Model\Submission\SubmittedFormField;
 use SilverStripe\Model\List\ArrayList;
 use SilverStripe\Model\ArrayData;
 use SilverStripe\Control\Director;
@@ -84,7 +85,7 @@ class SearchApi
         ChangeSetItem::class,
         RememberLoginHash::class,
         LoginSession::class,
-        'SilverStripe\\UserForms\\Model\\Submission\\SubmittedFormField',
+        SubmittedFormField::class,
     ];
 
     private static $default_exclude_fields = [
