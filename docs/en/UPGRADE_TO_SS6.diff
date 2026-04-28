@@ -1,0 +1,48 @@
+diff --git a/composer.json b/composer.json
+index cdc6ebc..df04efe 100644
+--- a/composer.json
++++ b/composer.json
+@@ -20,8 +20,8 @@
+     }
+   ],
+   "require": {
+-    "silverstripe/recipe-core": "^4.0 || ^5.0",
+-    "sunnysideup/cms_edit_link_field": "5.x-dev"
++    "silverstripe/recipe-core": "^6.0",
++    "sunnysideup/cms_edit_link_field": "^13.0"
+   },
+   "autoload": {
+     "psr-4": {
+diff --git a/src/Admin/SearchAdmin.php b/src/Admin/SearchAdmin.php
+index bbe8024..4eded7b 100644
+--- a/src/Admin/SearchAdmin.php
++++ b/src/Admin/SearchAdmin.php
+@@ -158,7 +158,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
+      *
+      * @param bool $unlinked
+      *
+-     * @return \SilverStripe\Model\List\ArrayList
++     * @return ArrayList
+      */
+     #[Override]
+     public function Breadcrumbs($unlinked = false)
+diff --git a/src/Tasks/SiteWideSearch.php b/src/Tasks/SiteWideSearch.php
+index f997828..4a98cd5 100644
+--- a/src/Tasks/SiteWideSearch.php
++++ b/src/Tasks/SiteWideSearch.php
+@@ -4,6 +4,7 @@ declare(strict_types=1);
+ 
+ namespace Sunnysideup\SiteWideSearch\Tasks;
+ 
++use Override;
+ use SilverStripe\Core\Environment;
+ use SilverStripe\Dev\BuildTask;
+ use SilverStripe\PolyExecution\PolyOutput;
+@@ -20,6 +21,7 @@ class SiteWideSearch extends BuildTask
+ 
+     protected static string $commandName = 'search-and-replace';
+ 
++    #[Override]
+     public function getOptions(): array
+     {
+         return [

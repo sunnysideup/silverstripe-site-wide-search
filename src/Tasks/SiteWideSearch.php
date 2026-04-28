@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Sunnysideup\SiteWideSearch\Tasks;
 
+use Override;
 use SilverStripe\Core\Environment;
 use SilverStripe\Dev\BuildTask;
 use SilverStripe\PolyExecution\PolyOutput;
@@ -20,6 +21,7 @@ class SiteWideSearch extends BuildTask
 
     protected static string $commandName = 'search-and-replace';
 
+    #[Override]
     public function getOptions(): array
     {
         return [
@@ -46,7 +48,7 @@ class SiteWideSearch extends BuildTask
             $replace = '';
         }
 
-        if (empty($word)) {
+        if ($word === '' || $word === '0') {
             $output->writeln('<error>Please provide a search word using --word option</error>');
             return Command::FAILURE;
         }
