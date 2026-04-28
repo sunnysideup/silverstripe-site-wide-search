@@ -21,7 +21,7 @@
   ],
   "require": {
     "silverstripe/recipe-core": "^4.0 || ^5.0",
-    "sunnysideup/cms_edit_link_field": "5.x-dev"
+    "sunnysideup/cms_edit_link_field": "^5.0-dev"
   },
   "autoload": {
     "psr-4": {
