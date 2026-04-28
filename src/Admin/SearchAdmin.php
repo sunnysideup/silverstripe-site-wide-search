@@ -158,7 +158,7 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
      *
      * @param bool $unlinked
      *
-     * @return \SilverStripe\Model\List\ArrayList
+     * @return ArrayList
      */
     #[Override]
     public function Breadcrumbs($unlinked = false)
