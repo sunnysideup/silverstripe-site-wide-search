@@ -169,7 +169,7 @@ class FindClassesAndFields
                             foreach ($testArray as $testInner) {
                                 $testInner = trim($testInner);
                                 if (isset($dbFields[$testInner])) {
-                                    $this->cache['AllIndexedFields'][$className][$testInner] = $dbFields[$key];
+                                    $this->cache['AllIndexedFields'][$className][$testInner] = $testInner;
                                 }
                             }
                         }
