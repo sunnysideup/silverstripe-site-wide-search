@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const input = document.createElement('input')
       input.setAttribute('type', 'text')
       input.setAttribute('name', 'Keywords')
-      input.setAttribute('placeholder', 'Search...')
+      input.setAttribute('placeholder', 'Search Site Wide...')
       input.setAttribute('id', inputId)
 
       const hiddenInput = document.createElement('input')
@@ -27,9 +27,16 @@ document.addEventListener('DOMContentLoaded', () => {
       // hiddenInput.setAttribute('id', 'Form_EditForm_SecurityID')
 
       const button = document.createElement('button')
-      button.innerHTML = '&#128269;'
-      button.setAttribute('class', 'left-search-button')
-      button.onclick = () => (window.location.href = '/admin/find')
+      button.setAttribute('class', 'left-search-button font-icon-search')
+      button.onclick = () => {
+        event.preventDefault()
+        const keywords = input.value.trim()
+        if (keywords.length < 2) {
+          window.location.href = '/admin/find/'
+        } else {
+          form.submit()
+        }
+      }
 
       while (targetElement.firstChild) {
         targetElement.removeChild(targetElement.firstChild)
@@ -47,11 +54,6 @@ document.addEventListener('DOMContentLoaded', () => {
         input.addEventListener('keyup', function (event) {
           var keywords = this.value.trim()
           // console.log('keywords', keywords.length)
-          if (keywords.length < 2) {
-            button.style.display = 'block'
-          } else {
-            button.style.display = 'none'
-          }
           if (event.key === 'Enter') {
             event.preventDefault() // Prevents the default form submit on Enter press
             if (keywords.length < 2) {

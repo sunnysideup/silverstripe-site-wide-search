@@ -87,7 +87,6 @@
     color: transparent !important;
 }
 .sunny-side-up-quick-search-form .left-search-button {
-    display: none;
     position: absolute;
     right: 10px;
     top: 12px;
@@ -96,15 +95,28 @@
     margin-top: 3px;
     border-radius: 50%;
     background: transparent;
-    font-size: 10px;
     border: none;
     opacity: 0.7;
     transition: all 0.3s ease-in-out;
     z-index: 9;
+    color: #fff;
 }
 .sunny-side-up-quick-search-form .left-search-button:hover {
-    color: white;
+    font-size: 110%;
     text-decoration: none;
     opacity: 1;
-    font-size: 110%;
+}
+
+.cms-menu__list.collapsed {
+    .sunny-side-up-quick-search-form input::placeholder {
+        color: transparent !important;
+        text-indent: -9999px;
+        padding-left: 0rem;
+    }
+    .sunny-side-up-quick-search-form .left-search-button {
+        position: absolute;
+        right: 24px;
+        top: 12px;
+        font-size: 1.6rem;
+    }
 }
