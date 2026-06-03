@@ -533,7 +533,7 @@ class SearchApi
         //return values
         $list = ArrayList::create();
         $finder = Injector::inst()->get(FindEditableObjects::class);
-        $finder->initCache(md5(serialize($this->excludedClassesWithSubClassess)))
+        $finder->initCache(hash('sha256', serialize($this->excludedClassesWithSubClassess)))
             ->setExcludedClasses($this->excludedClassesWithSubClassess);
 
         $items = $this->turnArrayIntoObjects($matches);
