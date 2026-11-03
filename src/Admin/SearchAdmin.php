@@ -18,6 +18,8 @@ use SilverStripe\Forms\TextField;
 use SilverStripe\Forms\ToggleCompositeField;
 use SilverStripe\ORM\ArrayList;
 use SilverStripe\ORM\FieldType\DBField;
+use SilverStripe\ORM\FieldType\DBHTMLText;
+use SilverStripe\View\ArrayData;
 use SilverStripe\Security\PermissionProvider;
 use Sunnysideup\SiteWideSearch\Api\SearchApi;
 use Sunnysideup\SiteWideSearch\QuickSearches\QuickSearchBaseClass;
@@ -266,9 +268,10 @@ class SearchAdmin extends LeftAndMain implements PermissionProvider
             } else {
                 $data = $session->get('QuickSearchLastResults');
                 if ($data) {
-                    $array = unserialize($data);
+                    // the results are ArrayData objects (with an HTMLText field): do not allow any other class
+                    $array = unserialize($data, ['allowed_classes' => [ArrayData::class, DBHTMLText::class]]);
                     $al = ArrayList::create();
-                    foreach ($array as $item) {
+                    foreach (is_array($array) ? $array : [] as $item) {
                         $al->push($item);
                     }
                     return $al;

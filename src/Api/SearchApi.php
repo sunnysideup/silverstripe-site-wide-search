@@ -753,8 +753,9 @@ class SearchApi
 
     protected function securityCheckInput(string $word): string
     {
-        $word = trim($word);
-        return Convert::raw2sql($word);
+        // values only go through the ORM (parameterised queries) or string replacement:
+        // escaping them for SQL here would double-escape what is searched for / written.
+        return trim($word);
     }
 
     protected function getDefaultList(string $className): array
