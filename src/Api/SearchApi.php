@@ -552,7 +552,7 @@ class SearchApi
         //return values
         $list = ArrayList::create();
         $finder = Injector::inst()->get(FindEditableObjects::class);
-        $finder->initCache(md5(serialize($this->excludedClassesWithSubClassess)))
+        $finder->initCache(hash('sha256', serialize($this->excludedClassesWithSubClassess)))
             ->setExcludedClasses($this->excludedClassesWithSubClassess);
 
         $items = $this->turnArrayIntoObjects($matches);
@@ -779,8 +779,9 @@ class SearchApi
 
     protected function securityCheckInput(string $word): string
     {
-        $word = trim($word);
-        return Convert::raw2sql($word);
+        // values only go through the ORM (parameterised queries) or string replacement:
+        // escaping them for SQL here would double-escape what is searched for / written.
+        return trim($word);
     }
 
     protected function getDefaultList(string $className): array
